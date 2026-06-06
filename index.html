@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Masterbus - Panel en Vivo de Stock</title>
+    <title>Masterbus - Panel Inteligente en Vivo</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
@@ -17,23 +17,8 @@
             --verde-ok: #2E7D32;
         }
 
-        body {
-            margin: 0;
-            padding: 0;
-            font-family: 'Montserrat', sans-serif;
-            background-color: var(--bg-principal);
-            color: var(--negro-masterbus);
-        }
-
-        header {
-            background-color: var(--negro-masterbus);
-            color: var(--blanco);
-            padding: 15px 30px;
-            display: flex;
-            align-items: center;
-            border-bottom: 4px solid var(--rojo-masterbus);
-        }
-
+        body { margin: 0; padding: 0; font-family: 'Montserrat', sans-serif; background-color: var(--bg-principal); color: var(--negro-masterbus); }
+        header { background-color: var(--negro-masterbus); color: var(--blanco); padding: 15px 30px; display: flex; align-items: center; border-bottom: 4px solid var(--rojo-masterbus); }
         .logo-placeholder { font-weight: 700; font-size: 24px; margin-right: 20px; }
         .logo-placeholder span { color: var(--rojo-masterbus); }
         h1 { font-size: 18px; margin: 0; font-weight: 400; text-transform: uppercase; }
@@ -41,14 +26,7 @@
         .dashboard-container { padding: 30px; max-width: 1600px; margin: 0 auto; transition: opacity 0.3s ease; }
         .kpi-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 30px; }
         
-        .card {
-            background-color: var(--blanco);
-            border-radius: 12px;
-            padding: 25px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
-            position: relative;
-            overflow: hidden;
-        }
+        .card { background-color: var(--blanco); border-radius: 12px; padding: 25px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); position: relative; overflow: hidden; }
         .card::before { content: ''; position: absolute; top: 0; left: 0; width: 5px; height: 100%; }
         .card.totales::before { background-color: var(--negro-masterbus); }
         .card.correctas::before { background-color: var(--verde-ok); }
@@ -65,14 +43,14 @@
         .chart-box { background-color: var(--blanco); border-radius: 12px; padding: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
         .chart-box h3 { margin-top: 0; font-size: 13px; text-transform: uppercase; border-bottom: 1px solid #ECEFF1; padding-bottom: 10px; margin-bottom: 15px; letter-spacing: 0.5px; }
         
-        .loading { opacity: 0.4; pointer-events: none; }
+        .loading { opacity: 0.3; pointer-events: none; }
     </style>
 </head>
 <body>
 
     <header>
         <div class="logo-placeholder">1<span>1</span> M</div>
-        <h1>Auditoría de Inventarios - Conexión en Vivo Masterbus</h1>
+        <h1>Auditoría de Inventarios - Control Total en Vivo Masterbus</h1>
     </header>
 
     <div class="dashboard-container loading" id="main-panel">
@@ -84,12 +62,12 @@
             <div class="card correctas">
                 <div class="card-title">Correctas (OK)</div>
                 <div class="card-value" id="val-ok">...</div>
-                <div class="card-percentage" id="pct-ok">Conectando...</div>
+                <div class="card-percentage" id="pct-ok">Procesando...</div>
             </div>
             <div class="card erroneas">
                 <div class="card-title">Discrepancias Totales</div>
                 <div class="card-value" id="val-error">...</div>
-                <div class="card-percentage" id="pct-error">Conectando...</div>
+                <div class="card-percentage" id="pct-error">Procesando...</div>
             </div>
         </div>
 
@@ -125,115 +103,120 @@
     <script>
         Chart.register(ChartDataLabels);
 
-        // URL del Apps Script de Google Sheets ya integrada y configurada de forma segura
         const URL_SCRIPT_GOOGLE = "https://script.google.com/macros/s/AKfycbz_p1K7YpXn3fQfIuI-fC6HhX4o9b7eT_tN5R56X7h0U3E7w-M2M4Yw/exec";
 
         async function cargarDatosEnVivo() {
             try {
-                // Hacemos la consulta usando redirección automática para evitar bloqueos
-                const respuesta = await fetch(URL_SCRIPT_GOOGLE, { method: 'GET', mode: 'cors' });
+                const respuesta = await fetch(URL_SCRIPT_GOOGLE, { method: 'GET' });
                 const datos = await respuesta.json();
 
-                // Insertar los valores numéricos reales en las tarjetas principales
+                // 1. Tarjetas Principales
                 document.getElementById('val-totales').innerText = Number(datos.totales).toLocaleString();
                 document.getElementById('val-ok').innerText = Number(datos.ok).toLocaleString();
                 document.getElementById('val-error').innerText = Number(datos.discrepancias).toLocaleString();
 
-                // Calcular las tasas porcentuales en tiempo real
                 const porcOK = ((datos.ok / datos.totales) * 100).toFixed(1);
                 const porcError = ((datos.discrepancias / datos.totales) * 100).toFixed(1);
 
                 document.getElementById('pct-ok').innerText = porcOK + '% Exactitud General';
                 document.getElementById('pct-error').innerText = porcError + '% Margen de Error';
 
-                // Inicializar y dibujar los gráficos con la data real obtenida
+                // 2. Renderizar Gráficos dinámicos con la data procesada del Sheets
                 renderDona(porcError, porcOK);
-                renderBases();
-                renderOtrosGráficos();
+                renderBasesExactitud(datos.bases.labels, datos.bases.exactitud);
+                renderBasesVolumen(datos.bases.labels, datos.bases.discrepancias);
+                renderTopSkus(datos.topSkus.labels, datos.topSkus.data);
+                renderEvolucion(datos.evolucion.labels, datos.evolucion.data);
 
-                // Desbloquear interfaz (remover opacidad de carga)
+                // Quitar pantalla gris de carga
                 document.getElementById('main-panel').classList.remove('loading');
 
             } catch (error) {
-                console.error("Error en la conexión de datos: ", error);
-                document.getElementById('pct-ok').innerText = "Reintentando conexión...";
+                console.error("Error cargando los datos dinámicos: ", error);
+                document.getElementById('pct-ok').innerText = "Error al conectar con la base de datos.";
             }
         }
 
         function renderDona(errorPct, okPct) {
-            const ctxDonut = document.getElementById('chartDonaPorcentajes').getContext('2d');
-            new Chart(ctxDonut, {
+            new Chart(document.getElementById('chartDonaPorcentajes').getContext('2d'), {
                 type: 'doughnut',
                 data: {
                     labels: ['Discrepancias', 'Correctas (OK)'],
-                    datasets: [{
-                        data: [errorPct, okPct],
-                        backgroundColor: ['#E30613', '#1A1A1A'],
-                        borderWidth: 0
-                    }]
+                    datasets: [{ data: [errorPct, okPct], backgroundColor: ['#E30613', '#1A1A1A'], borderWidth: 0 }]
                 },
                 options: {
                     plugins: {
                         legend: { position: 'bottom' },
-                        datalabels: {
-                            color: '#FFFFFF',
-                            font: { weight: 'bold', size: 14 },
-                            formatter: (value) => value + '%'
-                        }
+                        datalabels: { color: '#FFFFFF', font: { weight: 'bold', size: 14 }, formatter: (value) => value + '%' }
                     },
                     cutout: '65%'
                 }
             });
         }
 
-        function renderBases() {
-            const ctxExactitud = document.getElementById('chartExactitudBases').getContext('2d');
-            new Chart(ctxExactitud, {
+        function renderBasesExactitud(labels, data) {
+            new Chart(document.getElementById('chartExactitudBases').getContext('2d'), {
                 type: 'bar',
                 data: {
-                    labels: ['Zárate', 'Frias', 'Misiones', 'Olavarría', 'Comodoro', 'P. Moreno', 'La Matanza', 'San Julián'],
-                    datasets: [{
-                        data: [83.5, 96.3, 90.9, 81.6, 74.3, 87.1, 77.3, 95.0],
-                        backgroundColor: '#1A1A1A',
-                        borderRadius: 4
-                    }]
+                    labels: labels,
+                    datasets: [{ data: data, backgroundColor: '#1A1A1A', borderRadius: 4 }]
                 },
                 options: {
                     plugins: { 
                         legend: { display: false },
-                        datalabels: { anchor: 'end', align: 'top', formatter: (value) => value + '%', font: { size: 10 } }
+                        datalabels: { anchor: 'end', align: 'top', formatter: (value) => value + '%', font: { size: 10, weight: 'bold' } }
                     },
                     scales: { y: { max: 100, ticks: { callback: (value) => value + '%' } } }
                 }
             });
         }
 
-        function renderOtrosGráficos() {
-            new Chart(document.getElementById('chartEvolucionDiscrepancias').getContext('2d'), {
-                type: 'line',
-                data: {
-                    labels: ['Marzo', 'Abril', 'Mayo', 'Junio'],
-                    datasets: [{ data: [42, 128, 91, 30], borderColor: '#E30613', borderWidth: 3, tension: 0.4, fill: false }]
-                },
-                options: { plugins: { datalabels: { display: false }, legend: { display: false } } }
-            });
-
+        function renderBasesVolumen(labels, data) {
             new Chart(document.getElementById('chartDiscrepanciasPorBase').getContext('2d'), {
                 type: 'bar',
                 data: {
-                    labels: ['Zárate', 'Comodoro', 'Olavarría', 'Misiones', 'La Matanza'],
-                    datasets: [{ data: [241, 21, 14, 10, 5], backgroundColor: '#4A4A4A', borderRadius: 4 }]
+                    labels: labels,
+                    datasets: [{ data: data, backgroundColor: '#4A4A4A', borderRadius: 4 }]
                 },
-                options: { plugins: { datalabels: { display: false }, legend: { display: false } } }
+                options: { 
+                    plugins: { 
+                        legend: { display: false },
+                        datalabels: { anchor: 'end', align: 'top', font: { size: 10 } }
+                    } 
+                }
             });
+        }
 
+        function renderTopSkus(labels, data) {
             new Chart(document.getElementById('chartTopSkus').getContext('2d'), {
                 type: 'bar',
                 data: {
-                    labels: ['EL.0540', 'FS.C27830', 'VW.2TB', 'MB.A906', 'SC.0368'],
-                    datasets: [{ data: [19, 14, 12, 11, 8], backgroundColor: '#E30613', borderRadius: 4 }]
+                    labels: labels,
+                    datasets: [{ data: data, backgroundColor: '#E30613', borderRadius: 4 }]
                 },
-                options: { indexAxis: 'y', plugins: { datalabels: { display: false }, legend: { display: false } } }
+                options: { 
+                    indexAxis: 'y', 
+                    plugins: { 
+                        legend: { display: false },
+                        datalabels: { anchor: 'end', align: 'right', font: { size: 10, weight: 'bold' } }
+                    } 
+                }
+            });
+        }
+
+        function renderEvolucion(labels, data) {
+            new Chart(document.getElementById('chartEvolucionDiscrepancias').getContext('2d'), {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{ data: data, borderColor: '#E30613', borderWidth: 3, tension: 0.4, fill: false }]
+                },
+                options: { 
+                    plugins: { 
+                        legend: { display: false },
+                        datalabels: { anchor: 'end', align: 'top', font: { size: 10 } }
+                    } 
+                }
             });
         }
 
