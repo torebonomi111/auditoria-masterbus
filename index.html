@@ -257,10 +257,28 @@
                     }]
                 },
                 options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: { y: { beginAtZero: true, max: 100, ticks: { callback: value => value + '%' } } },
-                    plugins: { tooltip: { callbacks: { label: context => ` Exactitud: ${context.raw}%` } } }
+    responsive: true,
+    maintainAspectRatio: false,
+    barPercentage: 0.4,    // AGREGÁ ESTA LÍNEA AQUÍ
+    categoryPercentage: 0.8, // AGREGÁ ESTA LÍNEA AQUÍ
+    plugins: {
+        legend: { display: false },
+        title: {
+            display: true,
+            text: 'EXACTITUD DE LAS BASES OPERATIVAS',
+            font: { size: 14, weight: 'bold' },
+            padding: 20
+        }
+    },
+    scales: {
+        y: { 
+            beginAtZero: true, 
+            max: 100, 
+            grid: { display: false }, // ESTO LIMPIA EL FONDO
+            ticks: { callback: value => value + '%' } 
+        },
+        x: {
+            grid: { display: false } // ESTO TAMBIÉN
                 }
             });
 
