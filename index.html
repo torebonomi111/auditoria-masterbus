@@ -26,24 +26,30 @@
         header h1 span { color: var(--masterbus-red); }
         .area-tag { background-color: var(--masterbus-red); color: #ffffff; padding: 6px 14px; font-size: 11px; font-weight: bold; text-transform: uppercase; border-radius: 2px; }
         .container { max-width: 1500px; margin: 25px auto; padding: 0 20px; }
+        
         .kpi-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; margin-bottom: 25px; }
         .kpi-card { background: var(--panel-bg); border-radius: 4px; padding: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); display: flex; justify-content: space-between; align-items: center; border: 1px solid var(--border); border-left: 4px solid var(--masterbus-red); }
+        .kpi-card.kpi-ok { border-left-color: var(--success); }
         .kpi-data h3 { margin: 0 0 5px 0; font-size: 12px; color: var(--text-muted); text-transform: uppercase; }
         .kpi-data .metric { font-size: 28px; font-weight: bold; color: var(--dark-bg); }
         .kpi-card i { font-size: 30px; color: #dee2e6; }
+        
         .grid-dashboard { display: grid; grid-template-columns: repeat(auto-fit, minmax(450px, 1fr)); gap: 25px; margin-bottom: 25px; }
         .grid-full-width { grid-column: 1 / -1; }
         .card-chart { background: var(--panel-bg); border-radius: 4px; padding: 20px; border: 1px solid var(--border); box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
         .card-chart h2 { margin: 0 0 15px 0; font-size: 14px; text-transform: uppercase; color: var(--dark-bg); border-bottom: 1px solid var(--border); padding-bottom: 10px; display: flex; align-items: center; gap: 8px; }
         .card-chart h2 i { color: var(--masterbus-red); }
         .canvas-container { position: relative; height: 300px; width: 100%; }
+        
         .table-responsive { max-height: 400px; overflow-y: auto; margin-top: 15px; border: 1px solid var(--border); }
         table { width: 100%; border-collapse: collapse; font-size: 13px; text-align: left; }
         th { background-color: var(--light-gray); color: var(--dark-bg); padding: 12px; font-weight: 600; position: sticky; top: 0; border-bottom: 2px solid var(--border); }
         td { padding: 10px 12px; border-bottom: 1px solid var(--border); }
         tr:hover { background-color: #fafdff; }
+        
         .badge-table { padding: 3px 8px; font-size: 11px; font-weight: bold; border-radius: 3px; }
-        .bg-err { background-color: #fce8e6; color: var(--masterbus-red); }
+        .bg-neg { background-color: #fce8e6; color: var(--masterbus-red); }
+        .bg-pos { background-color: #e6f4ea; color: #137333; }
         #loading-screen { text-align: center; padding: 100px; font-size: 16px; color: var(--text-muted); }
     </style>
 </head>
@@ -57,7 +63,7 @@
     <div class="container">
         <div id="loading-screen">
             <i class="fa-solid fa-sync fa-spin" style="color:var(--masterbus-red); font-size:32px; margin-bottom:15px;"></i>
-            <div>Procesando métricas calibradas de stock...</div>
+            <div>Procesando métricas automatizadas de stock...</div>
         </div>
 
         <div id="dashboard-view" style="display: none;">
@@ -66,43 +72,46 @@
                     <div class="kpi-data"><h3>Ítems Auditados</h3><div class="metric" id="kpi-total">0</div></div>
                     <i class="fa-solid fa-boxes-stacked"></i>
                 </div>
-                <div class="kpi-card">
-                    <div class="kpi-data"><h3>Confiabilidad de Stock</h3><div class="metric" id="kpi-confiabilidad" style="color: var(--success);">0%</div></div>
-                    <i class="fa-solid fa-gauge-high"></i>
+                <div class="kpi-card kpi-ok">
+                    <div class="kpi-data"><h3>Auditorías Correctas</h3><div class="metric" id="kpi-correctas" style="color: var(--success);">0%</div></div>
+                    <i class="fa-solid fa-square-check" style="color: #e6f4ea;"></i>
                 </div>
                 <div class="kpi-card">
-                    <div class="kpi-data"><h3>Registros con Desvío</h3><div class="metric" id="kpi-desvios" style="color: var(--masterbus-red);">0</div></div>
-                    <i class="fa-solid fa-triangle-exclamation"></i>
+                    <div class="kpi-data"><h3>Auditorías Incorrectas</h3><div class="metric" id="kpi-incorrectas" style="color: var(--masterbus-red);">0%</div></div>
+                    <i class="fa-solid fa-square-xmark" style="color: #fce8e6;"></i>
                 </div>
             </div>
 
             <div class="grid-dashboard">
                 <div class="card-chart grid-full-width">
-                    <h2><i class="fa-solid fa-chart-line"></i> Evolución de Desvíos en el Tiempo (Mensual)</h2>
-                    <div class="canvas-container" style="height: 250px;"><canvas id="chartEvolucion"></canvas></div>
+                    <h2><i class="fa-solid fa-chart-bar"></i> Porcentaje de Exactitud por Base Operativa</h2>
+                    <div class="canvas-container" style="height: 250px;"><canvas id="chartBases"></canvas></div>
                 </div>
+
                 <div class="card-chart">
-                    <h2><i class="fa-solid fa-warehouse"></i> Desvíos por Ubicación de Stock</h2>
+                    <h2><i class="fa-solid fa-warehouse"></i> Cantidad de Desvíos por Ubicación (Location)</h2>
                     <div class="canvas-container"><canvas id="chartUbicaciones"></canvas></div>
                 </div>
+
                 <div class="card-chart">
-                    <h2><i class="fa-solid fa-chart-pie"></i> Proporción General de Precisión</h2>
+                    <h2><i class="fa-solid fa-chart-pie"></i> Proporción del Estado de Auditoría (Status)</h2>
                     <div class="canvas-container"><canvas id="chartEstado"></canvas></div>
                 </div>
+
                 <div class="card-chart grid-full-width">
-                    <h2><i class="fa-solid fa-list-check"></i> Monitor de Desvíos Críticos Detectados</h2>
+                    <h2><i class="fa-solid fa-list-check"></i> Monitor Analítico de Desvíos Detectados</h2>
                     <div class="table-responsive">
                         <table>
                             <thead>
                                 <tr>
                                     <th>Fecha</th>
-                                    <th>Base/Línea</th>
-                                    <th>Interno</th>
+                                    <th>Base</th>
+                                    <th>SKU</th>
+                                    <th>Descripción</th>
                                     <th>Ubicación</th>
-                                    <th>Detalle Repuesto</th>
-                                    <th>Físico</th>
-                                    <th>Sistemas</th>
-                                    <th>Diferencia</th>
+                                    <th>Stock Teórico</th>
+                                    <th>Conteo Físico</th>
+                                    <th>Diferencia Real</th>
                                 </tr>
                             </thead>
                             <tbody id="tabla-desvios"></tbody>
@@ -117,7 +126,7 @@
         const SHEET_ID = '1Gw3QckLUGIiK2ogC-ot74ParIQukaZ2iy3rtrlVnZuA';
         const URL_DIRECTA = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&gid=0`;
 
-        let chartEvo, chartUbi, chartEst;
+        let chartBasesObj, chartUbi, chartEst;
 
         async function procesarDashboard() {
             try {
@@ -126,126 +135,151 @@
                 
                 const jsonText = text.substring(text.indexOf('{'), text.lastIndexOf('}') + 1);
                 const data = JSON.parse(jsonText);
-                
                 const filas = data.table.rows;
                 
                 let total = 0;
-                let sinNovedad = 0;
-                let conDesvio = 0;
+                let correctasCount = 0;
+                let incorrectasCount = 0;
+                
                 let desviosPorUbicacion = {};
-                let desviosPorMes = {};
+                let datosBases = {}; // Para calcular la exactitud de cada base
                 let tablaHtml = '';
-
-                const mesesOrdenados = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
 
                 filas.forEach(f => {
                     const c = f.c;
-                    
-                    // Si la fila entera viene vacía o no tiene datos clave, la salteamos
-                    if (!c || (!c[3] && !c[4] && !c[11])) return;
+                    if (!c || !c[11]) return; // Si no tiene fecha en L, ignorar fila vacía
 
-                    total++; // Contamos solo filas válidas con datos de auditoría
+                    total++;
 
-                    // MAPEO DE COLUMNAS ACTUALIZADO SEGÚN TU INFO:
-                    // B(1)=Operador, C(2)=Base/Línea, D(3)=Ubicación, E(4)=Sistemas, F(5)=Físico, K(10)=Diferencia, L(11)=Fecha
-                    // Para Interno y Detalle usamos aproximaciones comunes (ej: si Interno está antes de Ubicación, etc.)
-                    // Si tuvieras Interno en otra columna, me avisás. Asumo Interno en columna C o similar por descarte.
-                    
-                    let fechaRaw = c[11] ? c[11].f : ''; 
-                    let baseLine = c[2] ? c[2].v : '-';
-                    let interno = c[1] ? c[1].v : '-'; // Ajustado provisorio
-                    let ubicacion = c[3] ? c[3].v : 'No Asignada';
-                    let detalle = c[6] ? c[6].v : 'Ver Planilla'; // Ajustado provisorio
-                    let sistemas = c[4] ? Number(c[4].v || 0) : 0;
-                    let fisico = c[5] ? Number(c[5].v || 0) : 0;
-                    let diff = c[10] ? Number(c[10].v) : 0;
+                    // ASIGNACIÓN SEGÚN EL LISTADO ENVIADO
+                    let sku = c[1] ? c[1].v : '-';
+                    let description = c[2] ? c[2].v : '-';
+                    let location = c[3] ? c[3].v : 'No Asignada';
+                    let theoretical = c[4] ? Number(c[4].v || 0) : 0;
+                    let physical = c[5] ? Number(c[5].v || 0) : 0;
+                    let status = c[6] ? c[6].v : ''; // G: OK o DISCREPANCY
+                    let base = c[9] ? c[9].v : 'Sin Base'; // J
+                    let difference = c[10] ? Number(c[10].v) : 0; // K (Mantiene signo real)
+                    let fechaRaw = c[11] ? c[11].f : '-'; // L
 
-                    let nombreMes = "Sin Fecha";
-                    let fCorta = fechaRaw || "-";
-                    
-                    if (fechaRaw) {
-                        let partes = fechaRaw.split("/");
-                        if(partes.length === 3) {
-                            let mesIndex = parseInt(partes[1], 10) - 1;
-                            let anoCorto = partes[2].substring(2);
-                            if(mesIndex >= 0 && mesIndex < 12) {
-                                nombreMes = `${mesesOrdenados[mesIndex]}-${anoCorto}`;
-                            }
-                        }
+                    // Inicializar métricas de la base si no existe en el acumulador
+                    if (!datosBases[base]) {
+                        datosBases[base] = { totales: 0, ok: 0 };
                     }
+                    datosBases[base].totales++;
 
-                    if (diff === 0) {
-                        sinNovedad++;
-                    } else {
-                        conDesvio++;
-                        desviosPorUbicacion[ubicacion] = (desviosPorUbicacion[ubicacion] || 0) + 1;
-                        desviosPorMes[nombreMes] = (desviosPorMes[nombreMes] || 0) + 1;
+                    if (status === "OK") {
+                        correctasCount++;
+                        datosBases[base].ok++;
+                    } else if (status === "DISCREPANCY") {
+                        incorrectasCount++;
+                        
+                        // Agrupar conteo de desvíos para gráficos
+                        desviosPorUbicacion[location] = (desviosPorUbicacion[location] || 0) + 1;
+
+                        // Color según diferencia positiva o negativa (Sin usar Valor Absoluto)
+                        let badgeClass = difference < 0 ? 'bg-neg' : 'bg-pos';
+                        let signo = difference > 0 ? '+' : '';
 
                         tablaHtml += `
                             <tr>
-                                <td>${fCorta}</td>
-                                <td>${baseLine}</td>
-                                <td>${interno}</td>
-                                <td><strong>${ubicacion}</strong></td>
-                                <td>${detalle}</td>
-                                <td>${fisico}</td>
-                                <td>${sistemas}</td>
-                                <td><span class="badge-table bg-err">${diff}</span></td>
+                                <td>${fechaRaw}</td>
+                                <td><strong>${base}</strong></td>
+                                <td>${sku}</td>
+                                <td>${description}</td>
+                                <td>${location}</td>
+                                <td>${theoretical}</td>
+                                <td>${physical}</td>
+                                <td><span class="badge-table ${badgeClass}">${signo}${difference}</span></td>
                             </tr>
                         `;
                     }
                 });
 
-                let confiabilidad = total > 0 ? ((sinNovedad / total) * 100).toFixed(1) : 0;
+                // Cálculos de porcentajes requeridos
+                let pctCorrectas = total > 0 ? ((correctasCount / total) * 100).toFixed(1) : 0;
+                let pctIncorrectas = total > 0 ? ((incorrectasCount / total) * 100).toFixed(1) : 0;
 
                 document.getElementById('kpi-total').innerText = total;
-                document.getElementById('kpi-confiabilidad').innerText = confiabilidad + '%';
-                document.getElementById('kpi-desvios').innerText = conDesvio;
-                document.getElementById('tabla-desvios').innerHTML = tablaHtml || '<tr><td colspan="8" style="text-align:center;">No se registran desvíos en el inventario.</td></tr>';
+                document.getElementById('kpi-correctas').innerText = pctCorrectas + '%';
+                document.getElementById('kpi-incorrectas').innerText = pctIncorrectas + '%';
+                document.getElementById('tabla-desvios').innerHTML = tablaHtml || '<tr><td colspan="8" style="text-align:center;">No se registran discrepancias en el sistema.</td></tr>';
 
                 document.getElementById('loading-screen').style.display = 'none';
                 document.getElementById('dashboard-view').style.display = 'block';
 
-                generarGraficos(desviosPorMes, desviosPorUbicacion, sinNovedad, conDesvio);
+                // Cálculos para el gráfico de barras de exactitud de bases
+                let basesLabels = [];
+                let basesExactitudPct = [];
+
+                Object.keys(datosBases).forEach(b => {
+                    basesLabels.push(b);
+                    let exactitud = ((datosBases[b].ok / datosBases[b].totales) * 100).toFixed(1);
+                    basesExactitudPct.push(exactitud);
+                });
+
+                generarGraficos(basesLabels, basesExactitudPct, desviosPorUbicacion, correctasCount, incorrectasCount);
 
             } catch (err) {
-                document.getElementById('loading-screen').innerHTML = `<div style="color:var(--masterbus-red); font-weight:bold; font-size:14px;"><i class="fa-solid fa-circle-xmark"></i> Error de calibración de columnas.<br><span style="color:#555; font-weight:normal;">Detalle: ${err.message}</span></div>`;
+                document.getElementById('loading-screen').innerHTML = `<div style="color:var(--masterbus-red); font-weight:bold; font-size:14px;"><i class="fa-solid fa-circle-xmark"></i> Error al parsear el listado.<br><span style="color:#555; font-weight:normal;">Detalle: ${err.message}</span></div>`;
                 console.error(err);
             }
         }
 
-        function generarGraficos(meses, ubicaciones, ok, err) {
-            const ctxEvo = document.getElementById('chartEvolucion').getContext('2d');
-            if(chartEvo) chartEvo.destroy();
-            chartEvo = new Chart(ctxEvo, {
-                type: 'line',
+        function generarGraficos(basesX, exactitudY, ubicaciones, ok, err) {
+            // 1. Gráfico de Exactitud de Bases
+            const ctxBases = document.getElementById('chartBases').getContext('2d');
+            if(chartBasesObj) chartBasesObj.destroy();
+            chartBasesObj = new Chart(ctxBases, {
+                type: 'bar',
                 data: {
-                    labels: Object.keys(meses),
+                    labels: basesX,
                     datasets: [{
-                        label: 'Desvíos Encontrados', data: Object.values(meses), borderColor: '#D70000', backgroundColor: 'rgba(215, 0, 0, 0.04)', tension: 0.25, fill: true, borderWidth: 3, pointBackgroundColor: '#151515'
+                        label: '% Exactitud de Stock',
+                        data: exactitudY,
+                        backgroundColor: 'rgba(25, 135, 84, 0.85)', // Verde institucional
+                        borderColor: 'var(--success)',
+                        borderWidth: 1,
+                        borderRadius: 3
                     }]
                 },
-                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { beginAtZero: true, max: 100, ticks: { callback: value => value + '%' } }
+                    },
+                    plugins: {
+                        tooltip: { callbacks: { label: context => ` Exactitud: ${context.raw}%` } }
+                    }
+                }
             });
 
+            // 2. Gráfico de Ubicaciones
             const ctxUbi = document.getElementById('chartUbicaciones').getContext('2d');
             if(chartUbi) chartUbi.destroy();
             chartUbi = new Chart(ctxUbi, {
                 type: 'bar',
                 data: {
                     labels: Object.keys(ubicaciones),
-                    datasets: [{ data: Object.values(ubicaciones), backgroundColor: '#151515', hoverBackgroundColor: '#D70000', borderRadius: 2 }]
+                    datasets: [{
+                        data: Object.values(ubicaciones),
+                        backgroundColor: '#151515',
+                        hoverBackgroundColor: 'var(--masterbus-red)',
+                        borderRadius: 2
+                    }]
                 },
-                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
             });
 
+            // 3. Gráfico de Proporción General (Status)
             const ctxEst = document.getElementById('chartEstado').getContext('2d');
             if(chartEst) chartEst.destroy();
             chartEst = new Chart(ctxEst, {
                 type: 'pie',
                 data: {
-                    labels: ['OK (Sin Novedad)', 'Con Desvío'],
-                    datasets: [{ data: [ok, err], backgroundColor: ['#198754', '#D70000'], borderWidth: 2, borderColor: '#ffffff' }]
+                    labels: ['Auditorías Correctas (OK)', 'Auditorías Incorrectas (DISCREPANCY)'],
+                    datasets: [{ data: [ok, err], backgroundColor: ['var(--success)', 'var(--masterbus-red)'], borderWidth: 2, borderColor: '#ffffff' }]
                 },
                 options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
             });
@@ -253,7 +287,7 @@
 
         window.onload = () => {
             procesarDashboard();
-            setInterval(procesarDashboard, 300000);
+            setInterval(procesarDashboard, 300000); // Auto-refresco cada 5 minutos
         };
     </script>
 </body>
