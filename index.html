@@ -9,7 +9,6 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <style>
-        /* Paleta Institucional Masterbus */
         :root {
             --masterbus-red: #D70000;
             --dark-bg: #151515;
@@ -28,7 +27,6 @@
             color: var(--text-main);
         }
 
-        /* Navbar */
         header {
             background-color: var(--dark-bg);
             color: #ffffff;
@@ -40,13 +38,7 @@
             box-shadow: 0 4px 12px rgba(0,0,0,0.1);
         }
 
-        header h1 {
-            margin: 0;
-            font-size: 22px;
-            letter-spacing: 0.5px;
-            font-weight: 700;
-        }
-
+        header h1 { margin: 0; font-size: 22px; font-weight: 700; }
         header h1 span { color: var(--masterbus-red); }
 
         .area-tag {
@@ -59,19 +51,9 @@
             border-radius: 2px;
         }
 
-        .container {
-            max-width: 1500px;
-            margin: 25px auto;
-            padding: 0 20px;
-        }
+        .container { max-width: 1500px; margin: 25px auto; padding: 0 20px; }
 
-        /* KPIs Superiores */
-        .kpi-row {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-            gap: 20px;
-            margin-bottom: 25px;
-        }
+        .kpi-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; margin-bottom: 25px; }
 
         .kpi-card {
             background: var(--panel-bg);
@@ -82,112 +64,33 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            border-top: 1px solid var(--border);
-            border-right: 1px solid var(--border);
-            border-bottom: 1px solid var(--border);
+            border: 1px solid var(--border);
+            border-left: 4px solid var(--masterbus-red);
         }
 
-        .kpi-data h3 {
-            margin: 0 0 5px 0;
-            font-size: 12px;
-            color: var(--text-muted);
-            text-transform: uppercase;
-        }
-
-        .kpi-data .metric {
-            font-size: 28px;
-            font-weight: bold;
-            color: var(--dark-bg);
-        }
-
+        .kpi-data h3 { margin: 0 0 5px 0; font-size: 12px; color: var(--text-muted); text-transform: uppercase; }
+        .kpi-data .metric { font-size: 28px; font-weight: bold; color: var(--dark-bg); }
         .kpi-card i { font-size: 30px; color: #dee2e6; }
 
-        /* Estructura del Dashboard */
-        .grid-dashboard {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
-            gap: 25px;
-            margin-bottom: 25px;
-        }
+        .grid-dashboard { display: grid; grid-template-columns: repeat(auto-fit, minmax(450px, 1fr)); gap: 25px; margin-bottom: 25px; }
+        .grid-full-width { grid-column: 1 / -1; }
 
-        .grid-full-width {
-            grid-column: 1 / -1;
-        }
-
-        .card-chart {
-            background: var(--panel-bg);
-            border-radius: 4px;
-            padding: 20px;
-            border: 1px solid var(--border);
-            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
-        }
-
-        .card-chart h2 {
-            margin: 0 0 15px 0;
-            font-size: 14px;
-            text-transform: uppercase;
-            color: var(--dark-bg);
-            border-bottom: 1px solid var(--border);
-            padding-bottom: 10px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
+        .card-chart { background: var(--panel-bg); border-radius: 4px; padding: 20px; border: 1px solid var(--border); box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
+        .card-chart h2 { margin: 0 0 15px 0; font-size: 14px; text-transform: uppercase; color: var(--dark-bg); border-bottom: 1px solid var(--border); padding-bottom: 10px; display: flex; align-items: center; gap: 8px; }
         .card-chart h2 i { color: var(--masterbus-red); }
 
-        .canvas-container {
-            position: relative;
-            height: 300px;
-            width: 100%;
-        }
+        .canvas-container { position: relative; height: 300px; width: 100%; }
 
-        /* Tabla de Auditoría */
-        .table-responsive {
-            max-height: 400px;
-            overflow-y: auto;
-            margin-top: 15px;
-            border: 1px solid var(--border);
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 13px;
-            text-align: left;
-        }
-
-        th {
-            background-color: var(--light-gray);
-            color: var(--dark-bg);
-            padding: 12px;
-            font-weight: 600;
-            position: sticky;
-            top: 0;
-            border-bottom: 2px solid var(--border);
-        }
-
-        td {
-            padding: 10px 12px;
-            border-bottom: 1px solid var(--border);
-        }
-
+        .table-responsive { max-height: 400px; overflow-y: auto; margin-top: 15px; border: 1px solid var(--border); }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; text-align: left; }
+        th { background-color: var(--light-gray); color: var(--dark-bg); padding: 12px; font-weight: 600; position: sticky; top: 0; border-bottom: 2px solid var(--border); }
+        td { padding: 10px 12px; border-bottom: 1px solid var(--border); }
         tr:hover { background-color: #fafdff; }
 
-        .badge-table {
-            padding: 3px 8px;
-            font-size: 11px;
-            font-weight: bold;
-            border-radius: 3px;
-        }
+        .badge-table { padding: 3px 8px; font-size: 11px; font-weight: bold; border-radius: 3px; }
         .bg-err { background-color: #fce8e6; color: var(--masterbus-red); }
 
-        #loading-screen {
-            text-align: center;
-            padding: 100px;
-            font-size: 16px;
-            color: var(--text-muted);
-        }
+        #loading-screen { text-align: center; padding: 100px; font-size: 16px; color: var(--text-muted); }
     </style>
 </head>
 <body>
@@ -200,11 +103,10 @@
     <div class="container">
         <div id="loading-screen">
             <i class="fa-solid fa-sync fa-spin" style="color:var(--masterbus-red); font-size:32px; margin-bottom:15px;"></i>
-            <div>Sincronizando con base de datos Masterbus en tiempo real...</div>
+            <div>Sincronizando base de datos e indicadores de stock...</div>
         </div>
 
         <div id="dashboard-view" style="display: none;">
-            
             <div class="kpi-row">
                 <div class="kpi-card">
                     <div class="kpi-data">
@@ -230,7 +132,6 @@
             </div>
 
             <div class="grid-dashboard">
-                
                 <div class="card-chart grid-full-width">
                     <h2><i class="fa-solid fa-chart-line"></i> Evolución de Desvíos en el Tiempo (Mensual)</h2>
                     <div class="canvas-container" style="height: 250px;">
@@ -268,12 +169,10 @@
                                     <th>Diferencia</th>
                                 </tr>
                             </thead>
-                            <tbody id="tabla-desvios">
-                                </tbody>
+                            <tbody id="tabla-desvios"></tbody>
                         </table>
                     </div>
                 </div>
-
             </div>
         </div>
     </div>
@@ -290,7 +189,7 @@
                 const registros = JSON.parse(dataText);
 
                 if (registros.error) {
-                    document.getElementById('loading-screen').innerHTML = `<div style="color:var(--masterbus-red); font-weight:bold;"><i class="fa-solid fa-circle-xmark"></i> Error devuelto por la hoja: ${registros.error}</div>`;
+                    document.getElementById('loading-screen').innerHTML = `<div style="color:var(--masterbus-red); font-weight:bold;"><i class="fa-solid fa-circle-xmark"></i> Error: ${registros.error}</div>`;
                     return;
                 }
 
@@ -308,27 +207,16 @@
                     let diff = Number(r["Diferencia"]) || 0;
                     let ubicacion = r["Ubicación de Stock"] || "No Asignada";
                     
-                    // --- PROTECCIÓN EXTREMA CONTRA FECHAS MAL FORMATEADAS ---
                     let nombreMes = "Sin Fecha";
                     let fCorta = "-";
                     
                     if (r["Fecha"]) {
                         let dateObj = new Date(r["Fecha"]);
-                        // Si falla el parseo ISO, intentamos limpiar si viene con formato texto común
-                        if (isNaN(dateObj.getTime())) {
-                            let partes = r["Fecha"].split(" ")[0].split("/");
-                            if(partes.length === 3) {
-                                // Intenta armar dd/mm/yyyy si viene de formato latino común
-                                dateObj = new Date(`${partes[2]}-${partes[1]}-${partes[0]}`);
-                            }
-                        }
-                        
-                        // Si logramos tener una fecha válida, extraemos los datos
                         if (!isNaN(dateObj.getTime())) {
                             let mIndex = dateObj.getMonth();
                             let yShort = dateObj.getFullYear().toString().substring(2);
                             nombreMes = `${mesesOrdenados[mIndex]}-${yShort}`;
-                            fCorta = dateObj.toLocaleDateString('es-AR');
+                            fCorta = dateObj.toLocaleDateString('es-AR', {timeZone: 'UTC'});
                         }
                     }
 
@@ -360,7 +248,7 @@
                 document.getElementById('kpi-total').innerText = total;
                 document.getElementById('kpi-confiabilidad').innerText = confiabilidad + '%';
                 document.getElementById('kpi-desvios').innerText = conDesvio;
-                document.getElementById('tabla-desvios').innerHTML = tablaHtml || '<tr><td colspan="8" style="text-align:center;">No se registran desvíos en el inventario.</td></tr>';
+                document.getElementById('tabla-desvios').innerHTML = tablaHtml || '<tr><td colspan="8" style="text-align:center;">No se registran desvíos.</td></tr>';
 
                 document.getElementById('loading-screen').style.display = 'none';
                 document.getElementById('dashboard-view').style.display = 'block';
@@ -368,25 +256,21 @@
                 generarGraficos(desviosPorMes, desviosPorUbicacion, sinNovedad, conDesvio);
 
             } catch (err) {
-                document.getElementById('loading-screen').innerHTML = `<div style="color:var(--masterbus-red); font-weight:bold; font-size:14px;"><i class="fa-solid fa-circle-xmark"></i> Error crítico en el procesamiento del Frontend.<br><span style="color:#555; font-weight:normal;">Detalle: ${err.message}. Revisá la consola con F12.</span></div>`;
+                document.getElementById('loading-screen').innerHTML = `<div style="color:var(--masterbus-red); font-weight:bold; font-size:14px;"><i class="fa-solid fa-circle-xmark"></i> Error de procesamiento.<br><span style="color:#555; font-weight:normal;">Detalle: ${err.message}</span></div>`;
                 console.error(err);
             }
         }
 
         function generarGraficos(meses, ubicaciones, ok, err) {
-            // Aseguramos que el eje temporal tenga un orden lógico si existieran datos mezclados
-            const etiquetasMeses = Object.keys(meses);
-            const valoresMeses = Object.values(meses);
-
             const ctxEvo = document.getElementById('chartEvolucion').getContext('2d');
             if(chartEvo) chartEvo.destroy();
             chartEvo = new Chart(ctxEvo, {
                 type: 'line',
                 data: {
-                    labels: etiquetasMeses,
+                    labels: Object.keys(meses),
                     datasets: [{
-                        label: 'Cantidad de Desvíos Encontrados',
-                        data: valoresMeses,
+                        label: 'Desvíos',
+                        data: Object.values(meses),
                         borderColor: '#D70000',
                         backgroundColor: 'rgba(215, 0, 0, 0.04)',
                         tension: 0.25,
@@ -395,11 +279,7 @@
                         pointBackgroundColor: '#151515'
                     }]
                 },
-                options: { 
-                    responsive: true, 
-                    maintainAspectRatio: false,
-                    plugins: { legend: { display: false } }
-                }
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
             });
 
             const ctxUbi = document.getElementById('chartUbicaciones').getContext('2d');
@@ -415,12 +295,7 @@
                         borderRadius: 2
                     }]
                 },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { legend: { display: false } },
-                    scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
-                }
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }
             });
 
             const ctxEst = document.getElementById('chartEstado').getContext('2d');
@@ -428,19 +303,10 @@
             chartEst = new Chart(ctxEst, {
                 type: 'pie',
                 data: {
-                    labels: ['Sin Novedad (OK)', 'Con Desvío'],
-                    datasets: [{
-                        data: [ok, err],
-                        backgroundColor: ['#198754', '#D70000'],
-                        borderWidth: 2,
-                        borderColor: '#ffffff'
-                    }]
+                    labels: ['OK', 'Con Desvío'],
+                    datasets: [{ data: [ok, err], backgroundColor: ['#198754', '#D70000'], borderWidth: 2, borderColor: '#ffffff' }]
                 },
-                options: { 
-                    responsive: true, 
-                    maintainAspectRatio: false,
-                    plugins: { legend: { position: 'bottom' } }
-                }
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
             });
         }
 
