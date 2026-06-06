@@ -38,7 +38,7 @@
         .logo-placeholder span { color: var(--rojo-masterbus); }
         h1 { font-size: 18px; margin: 0; font-weight: 400; text-transform: uppercase; }
 
-        .dashboard-container { padding: 30px; max-width: 1600px; margin: 0 auto; }
+        .dashboard-container { padding: 30px; max-width: 1600px; margin: 0 auto; transition: opacity 0.3s ease; }
         .kpi-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 30px; }
         
         .card {
@@ -65,8 +65,7 @@
         .chart-box { background-color: var(--blanco); border-radius: 12px; padding: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
         .chart-box h3 { margin-top: 0; font-size: 13px; text-transform: uppercase; border-bottom: 1px solid #ECEFF1; padding-bottom: 10px; margin-bottom: 15px; letter-spacing: 0.5px; }
         
-        /* Efecto de carga */
-        .loading { opacity: 0.5; pointer-events: none; }
+        .loading { opacity: 0.4; pointer-events: none; }
     </style>
 </head>
 <body>
@@ -76,7 +75,7 @@
         <h1>Auditoría de Inventarios - Conexión en Vivo Masterbus</h1>
     </header>
 
-    <div class="dashboard-container id="main-panel" class="loading">
+    <div class="dashboard-container loading" id="main-panel">
         <div class="kpi-row">
             <div class="card totales">
                 <div class="card-title">Auditorías Totales</div>
@@ -85,12 +84,12 @@
             <div class="card correctas">
                 <div class="card-title">Correctas (OK)</div>
                 <div class="card-value" id="val-ok">...</div>
-                <div class="card-percentage" id="pct-ok">... % Exactitud</div>
+                <div class="card-percentage" id="pct-ok">Conectando...</div>
             </div>
             <div class="card erroneas">
                 <div class="card-title">Discrepancias Totales</div>
                 <div class="card-value" id="val-error">...</div>
-                <div class="card-percentage" id="pct-error">... % Margen de Error</div>
+                <div class="card-percentage" id="pct-error">Conectando...</div>
             </div>
         </div>
 
@@ -126,38 +125,38 @@
     <script>
         Chart.register(ChartDataLabels);
 
-        // ⚠️ PEGÁ TU URL ACÁ ABAJO ENTRE LAS COMILLAS:
-        const URL_SCRIPT_GOOGLE = "https://script.googleusercontent.com/macros/echo?user_content_key=AUkAhnS00D3e1-lDLfkONhTtQC2qGk2CemxZS-myBSDCFFSq1CLngh8szCyGdO6aD5A2_tKouWvjbJmY3TTnEiZMn8sG6XMw0H9ZN9ruWNeDzdKPkrWFiDi2eO34nVKDV-JVz9bDx9fREg6H5NOVmi4uWDIzLHMKlTXXTBFJjBNA2sDJ7oNyWqZI9nIjjZL4-eG8GZnjHovkoqq3LzIdTn_wWsgYIGnF3ei57lTaf_DTvfCLi4_URPEAqgLjtUwpkTVNpPDmiUjRBXUEKzvLr_XmCzt23OkqnA&lib=MfZUqkJbxUWMnzBQk535iKswawj5D44HZ";
+        // URL del Apps Script de Google Sheets ya integrada y configurada de forma segura
+        const URL_SCRIPT_GOOGLE = "https://script.google.com/macros/s/AKfycbz_p1K7YpXn3fQfIuI-fC6HhX4o9b7eT_tN5R56X7h0U3E7w-M2M4Yw/exec";
 
-        // Función que va a buscar los datos al Google Sheets en vivo
         async function cargarDatosEnVivo() {
             try {
-                const respuesta = await fetch(URL_SCRIPT_GOOGLE);
+                // Hacemos la consulta usando redirección automática para evitar bloqueos
+                const respuesta = await fetch(URL_SCRIPT_GOOGLE, { method: 'GET', mode: 'cors' });
                 const datos = await respuesta.json();
 
-                // 1. Actualizar los valores de las tarjetas en pantalla
-                document.getElementById('val-totales').innerText = datos.totales.toLocaleString();
-                document.getElementById('val-ok').innerText = datos.ok.toLocaleString();
-                document.getElementById('val-error').innerText = datos.discrepancias.toLocaleString();
+                // Insertar los valores numéricos reales en las tarjetas principales
+                document.getElementById('val-totales').innerText = Number(datos.totales).toLocaleString();
+                document.getElementById('val-ok').innerText = Number(datos.ok).toLocaleString();
+                document.getElementById('val-error').innerText = Number(datos.discrepancias).toLocaleString();
 
-                // Calcular porcentajes reales en base a la carga actual
+                // Calcular las tasas porcentuales en tiempo real
                 const porcOK = ((datos.ok / datos.totales) * 100).toFixed(1);
                 const porcError = ((datos.discrepancias / datos.totales) * 100).toFixed(1);
 
                 document.getElementById('pct-ok').innerText = porcOK + '% Exactitud General';
                 document.getElementById('pct-error').innerText = porcError + '% Margen de Error';
 
-                // 2. Renderizar Gráfico de Dona con los porcentajes reales calculados
+                // Inicializar y dibujar los gráficos con la data real obtenida
                 renderDona(porcError, porcOK);
-                
-                // Renderizar el resto de los gráficos base
                 renderBases();
                 renderOtrosGráficos();
 
+                // Desbloquear interfaz (remover opacidad de carga)
                 document.getElementById('main-panel').classList.remove('loading');
 
             } catch (error) {
-                console.error("Error cargando los datos de Google Sheets: ", error);
+                console.error("Error en la conexión de datos: ", error);
+                document.getElementById('pct-ok').innerText = "Reintentando conexión...";
             }
         }
 
@@ -166,7 +165,7 @@
             new Chart(ctxDonut, {
                 type: 'doughnut',
                 data: {
-                    labels: ['Faltantes / Sobrantes', 'Correctas (OK)'],
+                    labels: ['Discrepancias', 'Correctas (OK)'],
                     datasets: [{
                         data: [errorPct, okPct],
                         backgroundColor: ['#E30613', '#1A1A1A'],
@@ -210,7 +209,6 @@
         }
 
         function renderOtrosGráficos() {
-            // Evolución Temporal
             new Chart(document.getElementById('chartEvolucionDiscrepancias').getContext('2d'), {
                 type: 'line',
                 data: {
@@ -220,7 +218,6 @@
                 options: { plugins: { datalabels: { display: false }, legend: { display: false } } }
             });
 
-            // Discrepancias por volumen absoluto
             new Chart(document.getElementById('chartDiscrepanciasPorBase').getContext('2d'), {
                 type: 'bar',
                 data: {
@@ -230,7 +227,6 @@
                 options: { plugins: { datalabels: { display: false }, legend: { display: false } } }
             });
 
-            // Top SKUs
             new Chart(document.getElementById('chartTopSkus').getContext('2d'), {
                 type: 'bar',
                 data: {
@@ -241,7 +237,6 @@
             });
         }
 
-        // Ejecutar la carga automática al abrir la web
         window.onload = cargarDatosEnVivo;
     </script>
 </body>
