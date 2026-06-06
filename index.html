@@ -279,15 +279,23 @@
     </div>
 
     <script>
-        // Tu URL de ejecución fija de Apps Script
-        const ENDPOINT = 'https://script.google.com/macros/s/AKfycbxYdF8erki64hNjZETJWUCTCg4KN43FAHccfvfip0jqEoL_-hBbQB3vQBSZnppxwGsKHQ/exec';
+        // URL NUEVA DE APPS SCRIPT TOTALMENTE ACTUALIZADA
+        const ENDPOINT = 'https://script.google.com/macros/s/AKfycbwqUxit0I-Jl1LKWA3LqDm3CQg4WH5GbIX0D2hH9p_X1D80wZj98kDKiUf91q6dO3r53w/exec';
 
         let chartEvo, chartUbi, chartEst;
 
         async function procesarDashboard() {
             try {
                 const res = await fetch(ENDPOINT);
-                const registros = await res.json();
+                const dataText = await res.text();
+                
+                // Parseamos manualmente la respuesta de texto plano a formato JSON
+                const registros = JSON.parse(dataText);
+
+                if (registros.error) {
+                    document.getElementById('loading-screen').innerHTML = `<div style="color:var(--masterbus-red); font-weight:bold;"><i class="fa-solid fa-circle-xmark"></i> Error devuelto por la hoja: ${registros.error}</div>`;
+                    return;
+                }
 
                 let total = registros.length;
                 let sinNovedad = 0;
@@ -297,15 +305,12 @@
                 let desviosPorMes = {};
                 let tablaHtml = '';
 
-                // Mapeo cronológico ordenado para que el gráfico no se cruce
                 const mesesOrdenados = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
 
                 registros.forEach(r => {
-                    // Convertimos la diferencia a número puro
                     let diff = Number(r["Diferencia"]) || 0;
                     let ubicacion = r["Ubicación de Stock"] || "No Asignada";
                     
-                    // Procesamiento de Fecha para agrupar meses de forma limpia
                     let nombreMes = "Sin Fecha";
                     if(r["Fecha"]) {
                         let dateObj = new Date(r["Fecha"]);
@@ -316,17 +321,14 @@
                         }
                     }
 
-                    // Lógica de desvío de stock (Si la diferencia no es cero, es un desvío)
                     if (diff === 0) {
                         sinNovedad++;
                     } else {
                         conDesvio++;
                         
-                        // Clasificación de desvíos para gráficos
                         desviosPorUbicacion[ubicacion] = (desviosPorUbicacion[ubicacion] || 0) + 1;
                         desviosPorMes[nombreMes] = (desviosPorMes[nombreMes] || 0) + 1;
 
-                        // Armado de filas para el Monitor de Calidad inferior
                         let fCorta = r["Fecha"] ? r["Fecha"].split("T")[0] : "-";
                         tablaHtml += `
                             <tr>
@@ -343,30 +345,25 @@
                     }
                 });
 
-                // Métricas Porcentuales de Calidad
                 let confiabilidad = total > 0 ? ((sinNovedad / total) * 100).toFixed(1) : 0;
 
-                // Actualizar Textos en el HTML
                 document.getElementById('kpi-total').innerText = total;
                 document.getElementById('kpi-confiabilidad').innerText = confiabilidad + '%';
                 document.getElementById('kpi-desvios').innerText = conDesvio;
                 document.getElementById('tabla-desvios').innerHTML = tablaHtml || '<tr><td colspan="8" style="text-align:center;">No se registran desvíos en el inventario.</td></tr>';
 
-                // Intercambio de pantallas (Ocultar Loader / Mostrar Tablero)
                 document.getElementById('loading-screen').style.display = 'none';
                 document.getElementById('dashboard-view').style.display = 'block';
 
-                // Renderización de gráficos con librerías interactivas
                 generarGraficos(desviosPorMes, desviosPorUbicacion, sinNovedad, conDesvio);
 
             } catch (err) {
-                document.getElementById('loading-screen').innerHTML = `<div style="color:var(--masterbus-red); font-weight:bold; font-size:14px;"><i class="fa-solid fa-circle-xmark"></i> Error de comunicación con la API de Apps Script.<br><span style="color:#555; font-weight:normal;">Verificá que el script esté publicado como 'Cualquiera'.</span></div>`;
+                document.getElementById('loading-screen').innerHTML = `<div style="color:var(--masterbus-red); font-weight:bold; font-size:14px;"><i class="fa-solid fa-circle-xmark"></i> Error de renderizado en GitHub Pages.<br><span style="color:#555; font-weight:normal;">Verificá la consola del navegador para más detalles.</span></div>`;
                 console.error(err);
             }
         }
 
         function generarGraficos(meses, ubicaciones, ok, err) {
-            // 1. Gráfico de Líneas - Evolución Mensual de Desvíos
             const ctxEvo = document.getElementById('chartEvolucion').getContext('2d');
             if(chartEvo) chartEvo.destroy();
             chartEvo = new Chart(ctxEvo, {
@@ -391,7 +388,6 @@
                 }
             });
 
-            // 2. Gráfico de Barras - Distribución por Ubicación de Stock
             const ctxUbi = document.getElementById('chartUbicaciones').getContext('2d');
             if(chartUbi) chartUbi.destroy();
             chartUbi = new Chart(ctxUbi, {
@@ -413,7 +409,6 @@
                 }
             });
 
-            // 3. Gráfico de Torta - Estado General (OK vs Desvío)
             const ctxEst = document.getElementById('chartEstado').getContext('2d');
             if(chartEst) chartEst.destroy();
             chartEst = new Chart(ctxEst, {
@@ -435,10 +430,8 @@
             });
         }
 
-        // Carga inicial y bucle de refresco en background
         window.onload = () => {
             procesarDashboard();
-            // Consulta el endpoint en segundo plano cada 5 minutos para reflejar cambios automáticos
             setInterval(procesarDashboard, 300000);
         };
     </script>
