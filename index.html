@@ -279,7 +279,6 @@
     </div>
 
     <script>
-        // URL NUEVA DE APPS SCRIPT TOTALMENTE ACTUALIZADA
         const ENDPOINT = 'https://script.google.com/macros/s/AKfycbwqUxit0I-Jl1LKWA3LqDm3CQg4WH5GbIX0D2hH9p_X1D80wZj98kDKiUf91q6dO3r53w/exec';
 
         let chartEvo, chartUbi, chartEst;
@@ -288,8 +287,6 @@
             try {
                 const res = await fetch(ENDPOINT);
                 const dataText = await res.text();
-                
-                // Parseamos manualmente la respuesta de texto plano a formato JSON
                 const registros = JSON.parse(dataText);
 
                 if (registros.error) {
@@ -311,13 +308,27 @@
                     let diff = Number(r["Diferencia"]) || 0;
                     let ubicacion = r["Ubicación de Stock"] || "No Asignada";
                     
+                    // --- PROTECCIÓN EXTREMA CONTRA FECHAS MAL FORMATEADAS ---
                     let nombreMes = "Sin Fecha";
-                    if(r["Fecha"]) {
+                    let fCorta = "-";
+                    
+                    if (r["Fecha"]) {
                         let dateObj = new Date(r["Fecha"]);
-                        if (!isNaN(dateObj)) {
+                        // Si falla el parseo ISO, intentamos limpiar si viene con formato texto común
+                        if (isNaN(dateObj.getTime())) {
+                            let partes = r["Fecha"].split(" ")[0].split("/");
+                            if(partes.length === 3) {
+                                // Intenta armar dd/mm/yyyy si viene de formato latino común
+                                dateObj = new Date(`${partes[2]}-${partes[1]}-${partes[0]}`);
+                            }
+                        }
+                        
+                        // Si logramos tener una fecha válida, extraemos los datos
+                        if (!isNaN(dateObj.getTime())) {
                             let mIndex = dateObj.getMonth();
                             let yShort = dateObj.getFullYear().toString().substring(2);
                             nombreMes = `${mesesOrdenados[mIndex]}-${yShort}`;
+                            fCorta = dateObj.toLocaleDateString('es-AR');
                         }
                     }
 
@@ -329,7 +340,6 @@
                         desviosPorUbicacion[ubicacion] = (desviosPorUbicacion[ubicacion] || 0) + 1;
                         desviosPorMes[nombreMes] = (desviosPorMes[nombreMes] || 0) + 1;
 
-                        let fCorta = r["Fecha"] ? r["Fecha"].split("T")[0] : "-";
                         tablaHtml += `
                             <tr>
                                 <td>${fCorta}</td>
@@ -358,21 +368,25 @@
                 generarGraficos(desviosPorMes, desviosPorUbicacion, sinNovedad, conDesvio);
 
             } catch (err) {
-                document.getElementById('loading-screen').innerHTML = `<div style="color:var(--masterbus-red); font-weight:bold; font-size:14px;"><i class="fa-solid fa-circle-xmark"></i> Error de renderizado en GitHub Pages.<br><span style="color:#555; font-weight:normal;">Verificá la consola del navegador para más detalles.</span></div>`;
+                document.getElementById('loading-screen').innerHTML = `<div style="color:var(--masterbus-red); font-weight:bold; font-size:14px;"><i class="fa-solid fa-circle-xmark"></i> Error crítico en el procesamiento del Frontend.<br><span style="color:#555; font-weight:normal;">Detalle: ${err.message}. Revisá la consola con F12.</span></div>`;
                 console.error(err);
             }
         }
 
         function generarGraficos(meses, ubicaciones, ok, err) {
+            // Aseguramos que el eje temporal tenga un orden lógico si existieran datos mezclados
+            const etiquetasMeses = Object.keys(meses);
+            const valoresMeses = Object.values(meses);
+
             const ctxEvo = document.getElementById('chartEvolucion').getContext('2d');
             if(chartEvo) chartEvo.destroy();
             chartEvo = new Chart(ctxEvo, {
                 type: 'line',
                 data: {
-                    labels: Object.keys(meses),
+                    labels: etiquetasMeses,
                     datasets: [{
                         label: 'Cantidad de Desvíos Encontrados',
-                        data: Object.values(meses),
+                        data: valoresMeses,
                         borderColor: '#D70000',
                         backgroundColor: 'rgba(215, 0, 0, 0.04)',
                         tension: 0.25,
