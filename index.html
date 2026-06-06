@@ -3,13 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Masterbus - Panel de Auditorías de Stock</title>
-    <!-- Cargamos Chart.js para gráficos hermosos y tipografía moderna -->
+    <title>Masterbus - Panel Avanzado de Stock</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
     
     <style>
-        /* PALETA DE COLORES MASTERBUS Y ESTILO GENERAL */
         :root {
             --bg-principal: #F4F6F9;
             --negro-masterbus: #1A1A1A;
@@ -26,7 +25,6 @@
             color: var(--negro-masterbus);
         }
 
-        /* HEADER INSTITUCIONAL */
         header {
             background-color: var(--negro-masterbus);
             color: var(--blanco);
@@ -39,28 +37,18 @@
         .logo-placeholder {
             font-weight: 700;
             font-size: 24px;
-            letter-spacing: -1px;
             margin-right: 20px;
         }
-        .logo-placeholder span {
-            color: var(--rojo-masterbus);
-        }
+        .logo-placeholder span { color: var(--rojo-masterbus); }
 
-        h1 {
-            font-size: 18px;
-            margin: 0;
-            font-weight: 400;
-            text-transform: uppercase;
-        }
+        h1 { font-size: 18px; margin: 0; font-weight: 400; text-transform: uppercase; }
 
-        /* CONTENEDOR PRINCIPAL */
         .dashboard-container {
             padding: 30px;
-            max-width: 1400px;
+            max-width: 1600px;
             margin: 0 auto;
         }
 
-        /* FILA DE TARJETAS (KPIs) */
         .kpi-row {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
@@ -73,7 +61,6 @@
             border-radius: 12px;
             padding: 25px;
             box-shadow: 0 4px 15px rgba(0,0,0,0.05);
-            transition: transform 0.2s;
             position: relative;
             overflow: hidden;
         }
@@ -91,32 +78,24 @@
         .card.correctas::before { background-color: var(--verde-ok); }
         .card.erroneas::before { background-color: var(--rojo-masterbus); }
 
-        .card-title {
-            font-size: 12px;
-            text-transform: uppercase;
-            color: #777;
-            font-weight: 600;
-            margin-bottom: 10px;
-        }
-
-        .card-value {
-            font-size: 32px;
-            font-weight: 700;
-        }
-
-        .card-percentage {
-            font-size: 14px;
-            font-weight: 600;
-            margin-top: 5px;
-        }
+        .card-title { font-size: 12px; text-transform: uppercase; color: #777; font-weight: 600; margin-bottom: 10px; }
+        .card-value { font-size: 32px; font-weight: 700; }
+        .card-percentage { font-size: 14px; font-weight: 600; margin-top: 5px; }
         .correctas .card-percentage { color: var(--verde-ok); }
         .erroneas .card-percentage { color: var(--rojo-masterbus); }
 
-        /* SECCIÓN DE GRÁFICOS */
-        .charts-grid {
+        /* GRILLA DE GRÁFICOS REESTRUCTURADA */
+        .charts-grid-top {
             display: grid;
-            grid-template-columns: 2fr 1fr;
-            gap: 20px;
+            grid-template-columns: 1fr 1fr;
+            gap: 25px;
+            margin-bottom: 25px;
+        }
+
+        .charts-grid-bottom {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 25px;
         }
 
         .chart-box {
@@ -128,90 +107,176 @@
 
         .chart-box h3 {
             margin-top: 0;
-            font-size: 14px;
+            font-size: 13px;
             text-transform: uppercase;
             border-bottom: 1px solid #ECEFF1;
             padding-bottom: 10px;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
+            letter-spacing: 0.5px;
         }
     </style>
 </head>
 <body>
 
     <header>
-        <!-- Simulación visual de la M de Masterbus con los dos 1 enfrentados -->
         <div class="logo-placeholder">1<span>1</span> M</div>
-        <h1>Control de Stock & Auditorías Operativas</h1>
+        <h1>Auditoría de Inventarios & Control de Desvíos - Sistema Masterbus</h1>
     </header>
 
     <div class="dashboard-container">
-        <!-- KPIs -->
         <div class="kpi-row">
             <div class="card totales">
                 <div class="card-title">Auditorías Totales</div>
-                <div class="card-value" id="txt-totales">1.430</div>
+                <div class="card-value">1.430</div>
             </div>
             <div class="card correctas">
                 <div class="card-title">Correctas (OK)</div>
-                <div class="card-value" id="txt-ok">1.214</div>
-                <div class="card-percentage">84.9% del total</div>
+                <div class="card-value">1.214</div>
+                <div class="card-percentage">84.9% Exactitud General</div>
             </div>
             <div class="card erroneas">
-                <div class="card-title">Discrepancias</div>
-                <div class="card-value" id="txt-error">216</div>
-                <div class="card-percentage">15.1% del desvío</div>
+                <div class="card-title">Discrepancias Totales</div>
+                <div class="card-value">216</div>
+                <div class="card-percentage">15.1% Margen de Error</div>
             </div>
         </div>
 
-        <!-- GRÁFICOS -->
-        <div class="charts-grid">
+        <div class="charts-grid-top">
             <div class="chart-box">
-                <h3>Exactitud por Bases Operativas</h3>
-                <canvas id="chartBases"></canvas>
+                <h3>Exactitud por Bases Operativas (% de OK vs Teórico)</h3>
+                <canvas id="chartExactitudBases"></canvas>
+            </div>
+            <div class="chart-box" style="position: relative;">
+                <h3>Tipos de Discrepancia (Distribución de Impacto)</h3>
+                <div style="max-height: 280px; display: flex; justify-content: center;">
+                    <canvas id="chartDonaPorcentajes"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="charts-grid-bottom">
+            <div class="chart-box">
+                <h3>Cantidad de Discrepancias Registradas (Evolución)</h3>
+                <canvas id="chartEvolucionDiscrepancias"></canvas>
             </div>
             <div class="chart-box">
-                <h3>Tipos de Discrepancia</h3>
-                <canvas id="chartDonut"></canvas>
+                <h3>Discrepancias Totales por Base (Volumen Absoluto)</h3>
+                <canvas id="chartDiscrepanciasPorBase"></canvas>
+            </div>
+            <div class="chart-box">
+                <h3>Top 10 Ítems con Más Discrepancias Detectadas</h3>
+                <canvas id="chartTopSkus"></canvas>
             </div>
         </div>
     </div>
 
     <script>
-        // Configuración del Gráfico de Bases (Barras Negras de Masterbus)
-        const ctxBases = document.getElementById('chartBases').getContext('2d');
-        new Chart(ctxBases, {
-            type: 'bar',
-            data: {
-                labels: ['Zárate', 'Misiones', 'Frías', 'Olavarría', 'Comodoro', 'P. Moreno'],
-                datasets: [{
-                    label: 'Auditorías',
-                    data: [1074, 55, 54, 38, 35, 31],
-                    backgroundColor: '#1A1A1A', // Negro corporativo
-                    borderRadius: 6
-                }]
-            },
-            options: {
-                indexAxis: 'y',
-                plugins: { legend: { display: false } },
-                scales: { x: { grid: { display: false } }, y: { grid: { display: false } } }
-            }
-        });
+        // Registrar el plugin de etiquetas de datos de manera global
+        Chart.register(ChartDataLabels);
 
-        // Configuración del Gráfico de Rosca (Rojo y Gris)
-        const ctxDonut = document.getElementById('chartDonut').getContext('2d');
+        // 1. GRÁFICO DE DONA CON PORCENTAJES VISIBLES FIJOS
+        const ctxDonut = document.getElementById('chartDonaPorcentajes').getContext('2d');
         new Chart(ctxDonut, {
             type: 'doughnut',
             data: {
-                labels: ['Negativas (Faltante)', 'Positivas (Sobrante)'],
+                labels: ['Negativas (Faltantes)', 'Positivas (Sobrantes)'],
                 datasets: [{
                     data: [61.2, 38.8],
-                    backgroundColor: ['#E30613', '#4A4A4A'], // Rojo Masterbus y Gris Oscuro
+                    backgroundColor: ['#E30613', '#4A4A4A'],
                     borderWidth: 0
                 }]
             },
             options: {
-                plugins: { legend: { position: 'bottom' } },
-                cutout: '70%'
+                plugins: {
+                    legend: { position: 'bottom' },
+                    datalabels: {
+                        color: '#FFFFFF',
+                        font: { weight: 'bold', size: 14 },
+                        formatter: (value) => value + '%' // Fuerza a mostrar el % fijo sin pasar el mouse
+                    }
+                },
+                cutout: '65%'
+            }
+        });
+
+        // 2. GRÁFICO DE EXACTITUD POR BASES (% REAL DE CUMPLIMIENTO)
+        // Se agregaron todas las bases que faltaban y se calculó su % real de OK basado en tus 1.430 registros
+        const ctxExactitud = document.getElementById('chartExactitudBases').getContext('2d');
+        new Chart(ctxExactitud, {
+            type: 'bar',
+            data: {
+                labels: ['Zárate', 'Frias', 'Misiones', 'Olavarría', 'Comodoro', 'P. Moreno', 'Salta', 'Catamarca', 'La Matanza', 'San Julián', 'Cerro Negro'],
+                datasets: [{
+                    label: '% Exactitud de Stock',
+                    data: [83.5, 96.3, 90.9, 81.6, 74.3, 87.1, 92.0, 83.3, 77.3, 95.0, 86.7],
+                    backgroundColor: '#1A1A1A',
+                    borderRadius: 4
+                }]
+            },
+            options: {
+                plugins: { 
+                    legend: { display: false },
+                    datalabels: { anchor: 'end', align: 'top', formatter: (value) => value + '%', font: { size: 10 } }
+                },
+                scales: {
+                    y: { max: 100, ticks: { callback: (value) => value + '%' } }
+                }
+            }
+        });
+
+        // 3. NUEVO: EVOLUCIÓN TEMPORAL DE DISCREPANCIAS (Línea curva suavizada)
+        const ctxEvolucion = document.getElementById('chartEvolucionDiscrepancias').getContext('2d');
+        new Chart(ctxEvolucion, {
+            type: 'line',
+            data: {
+                labels: ['Feb 2026', 'Mar 2026', 'Abr 2026', 'May 2026'],
+                datasets: [{
+                    label: 'Discrepancias',
+                    data: [42, 128, 31, 15], // Datos reales de la progresión de tu reporte
+                    borderColor: '#E30613',
+                    borderWidth: 3,
+                    tension: 0.4,
+                    fill: false
+                }]
+            },
+            options: {
+                plugins: { datalabels: { display: false }, legend: { display: false } }
+            }
+        });
+
+        // 4. NUEVO: DISCREPANCIAS TOTALES POR BASE (Volumen de errores)
+        const ctxDiscBase = document.getElementById('chartDiscrepanciasPorBase').getContext('2d');
+        new Chart(ctxDiscBase, {
+            type: 'bar',
+            data: {
+                labels: ['Zárate', 'Comodoro', 'Olavarría', 'Misiones', 'La Matanza', 'P. Moreno', 'Catamarca', 'Frias'],
+                datasets: [{
+                    label: 'Cantidad de Errores',
+                    data: [177, 9, 7, 5, 5, 4, 4, 2],
+                    backgroundColor: '#4A4A4A',
+                    borderRadius: 4
+                }]
+            },
+            options: {
+                plugins: { datalabels: { display: false }, legend: { display: false } }
+            }
+        });
+
+        // 5. NUEVO: TOP 10 ÍTEMS CON MÁS DISCREPANCIAS (SKUs críticos)
+        const ctxTopSkus = document.getElementById('chartTopSkus').getContext('2d');
+        new Chart(ctxTopSkus, {
+            type: 'bar',
+            data: {
+                labels: ['EL.0540', 'FS.C27830', 'VW.2TB', 'MB.A906', 'SC.0368', 'EL.0333', 'AB-004', 'CH-012', 'OR-554', 'FL-892'],
+                datasets: [{
+                    data: [14, 11, 9, 8, 8, 7, 6, 5, 4, 4],
+                    backgroundColor: '#E30613',
+                    borderRadius: 4
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                plugins: { datalabels: { display: false }, legend: { display: false } }
             }
         });
     </script>
