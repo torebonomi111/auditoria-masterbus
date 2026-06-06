@@ -63,7 +63,7 @@
     <div class="container">
         <div id="loading-screen">
             <i class="fa-solid fa-sync fa-spin" style="color:var(--masterbus-red); font-size:32px; margin-bottom:15px;"></i>
-            <div>Procesando métricas automatizadas de stock...</div>
+            <div>Procesando métricas avanzadas de control...</div>
         </div>
 
         <div id="dashboard-view" style="display: none;">
@@ -94,8 +94,8 @@
                 </div>
 
                 <div class="card-chart">
-                    <h2><i class="fa-solid fa-chart-pie"></i> Proporción del Estado de Auditoría (Status)</h2>
-                    <div class="canvas-container"><canvas id="chartEstado"></canvas></div>
+                    <h2><i class="fa-solid fa-chart-pie"></i> Composición de Discrepancias Detectadas</h2>
+                    <div class="canvas-container"><canvas id="chartDonaDiscrepancias"></canvas></div>
                 </div>
 
                 <div class="card-chart grid-full-width">
@@ -126,7 +126,7 @@
         const SHEET_ID = '1Gw3QckLUGIiK2ogC-ot74ParIQukaZ2iy3rtrlVnZuA';
         const URL_DIRECTA = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&gid=0`;
 
-        let chartBasesObj, chartUbi, chartEst;
+        let chartBasesObj, chartUbi, chartDonaObj;
 
         async function procesarDashboard() {
             try {
@@ -141,50 +141,64 @@
                 let correctasCount = 0;
                 let incorrectasCount = 0;
                 
+                // Conteo específico para la Dona de Discrepancias (Columna M)
+                let discPositivas = 0;
+                let discNegativas = 0;
+                
                 let desviosPorUbicacion = {};
-                let datosBases = {}; // Para calcular la exactitud de cada base
+                let datosBases = {}; 
                 let tablaHtml = '';
 
                 filas.forEach(f => {
                     const c = f.c;
-                    if (!c || !c[11]) return; // Si no tiene fecha en L, ignorar fila vacía
+                    if (!c || !c[11]) return; // Requiere fecha válida en L
 
                     total++;
 
-                    // ASIGNACIÓN SEGÚN EL LISTADO ENVIADO
                     let sku = c[1] ? c[1].v : '-';
                     let description = c[2] ? c[2].v : '-';
                     let location = c[3] ? c[3].v : 'No Asignada';
                     let theoretical = c[4] ? Number(c[4].v || 0) : 0;
                     let physical = c[5] ? Number(c[5].v || 0) : 0;
-                    let status = c[6] ? c[6].v : ''; // G: OK o DISCREPANCY
-                    let base = c[9] ? c[9].v : 'Sin Base'; // J
-                    let difference = c[10] ? Number(c[10].v) : 0; // K (Mantiene signo real)
+                    let status = c[6] ? c[6].v : ''; // G
+                    let base = c[9] ? c[9].v : ''; // J
+                    let difference = c[10] ? Number(c[10].v) : 0; // K
                     let fechaRaw = c[11] ? c[11].f : '-'; // L
+                    let tipoDif = c[12] ? c[12].v : ''; // M: POSITIVA o NEGATIVA
 
-                    // Inicializar métricas de la base si no existe en el acumulador
-                    if (!datosBases[base]) {
-                        datosBases[base] = { totales: 0, ok: 0 };
+                    // --- VALIDACIÓN ESTRICTA DE BASE ---
+                    // Ignora el registro para el cálculo por base si está vacío, es blanco o dice "Sin Base"
+                    let baseValida = base && base.toString().trim() !== "" && base.toString().toLowerCase() !== "sin base";
+
+                    if (baseValida) {
+                        if (!datosBases[base]) {
+                            datosBases[base] = { totales: 0, ok: 0 };
+                        }
+                        datosBases[base].totales++;
                     }
-                    datosBases[base].totales++;
 
                     if (status === "OK") {
                         correctasCount++;
-                        datosBases[base].ok++;
+                        if (baseValida) datosBases[base].ok++;
                     } else if (status === "DISCREPANCY") {
                         incorrectasCount++;
                         
-                        // Agrupar conteo de desvíos para gráficos
+                        // Clasificación de discrepancias según columna M
+                        if (tipoDif === "POSITIVA") {
+                            discPositivas++;
+                        } else if (tipoDif === "NEGATIVA") {
+                            discNegativas++;
+                        }
+                        
                         desviosPorUbicacion[location] = (desviosPorUbicacion[location] || 0) + 1;
 
-                        // Color según diferencia positiva o negativa (Sin usar Valor Absoluto)
                         let badgeClass = difference < 0 ? 'bg-neg' : 'bg-pos';
                         let signo = difference > 0 ? '+' : '';
 
                         tablaHtml += `
                             <tr>
                                 <td>${fechaRaw}</td>
-                                <td><strong>${base}</strong></td>
+                                <td><strong>${base || '-'}</strong></td>
                                 <td>${sku}</td>
                                 <td>${description}</td>
                                 <td>${location}</td>
@@ -196,19 +210,18 @@
                     }
                 });
 
-                // Cálculos de porcentajes requeridos
                 let pctCorrectas = total > 0 ? ((correctasCount / total) * 100).toFixed(1) : 0;
                 let pctIncorrectas = total > 0 ? ((incorrectasCount / total) * 100).toFixed(1) : 0;
 
                 document.getElementById('kpi-total').innerText = total;
                 document.getElementById('kpi-correctas').innerText = pctCorrectas + '%';
                 document.getElementById('kpi-incorrectas').innerText = pctIncorrectas + '%';
-                document.getElementById('tabla-desvios').innerHTML = tablaHtml || '<tr><td colspan="8" style="text-align:center;">No se registran discrepancias en el sistema.</td></tr>';
+                document.getElementById('tabla-desvios').innerHTML = tablaHtml || '<tr><td colspan="8" style="text-align:center;">No se registran discrepancias.</td></tr>';
 
                 document.getElementById('loading-screen').style.display = 'none';
                 document.getElementById('dashboard-view').style.display = 'block';
 
-                // Cálculos para el gráfico de barras de exactitud de bases
+                // Ejes para el gráfico de barras de exactitud de bases filtradas
                 let basesLabels = [];
                 let basesExactitudPct = [];
 
@@ -218,15 +231,15 @@
                     basesExactitudPct.push(exactitud);
                 });
 
-                generarGraficos(basesLabels, basesExactitudPct, desviosPorUbicacion, correctasCount, incorrectasCount);
+                generarGraficos(basesLabels, basesExactitudPct, desviosPorUbicacion, discPositivas, discNegativas);
 
             } catch (err) {
-                document.getElementById('loading-screen').innerHTML = `<div style="color:var(--masterbus-red); font-weight:bold; font-size:14px;"><i class="fa-solid fa-circle-xmark"></i> Error al parsear el listado.<br><span style="color:#555; font-weight:normal;">Detalle: ${err.message}</span></div>`;
+                document.getElementById('loading-screen').innerHTML = `<div style="color:var(--masterbus-red); font-weight:bold; font-size:14px;"><i class="fa-solid fa-circle-xmark"></i> Error de procesamiento.<br><span style="color:#555; font-weight:normal;">Detalle: ${err.message}</span></div>`;
                 console.error(err);
             }
         }
 
-        function generarGraficos(basesX, exactitudY, ubicaciones, ok, err) {
+        function generarGraficos(basesX, exactitudY, ubicaciones, positivas, negativas) {
             // 1. Gráfico de Exactitud de Bases
             const ctxBases = document.getElementById('chartBases').getContext('2d');
             if(chartBasesObj) chartBasesObj.destroy();
@@ -237,7 +250,7 @@
                     datasets: [{
                         label: '% Exactitud de Stock',
                         data: exactitudY,
-                        backgroundColor: 'rgba(25, 135, 84, 0.85)', // Verde institucional
+                        backgroundColor: 'rgba(25, 135, 84, 0.85)',
                         borderColor: 'var(--success)',
                         borderWidth: 1,
                         borderRadius: 3
@@ -246,12 +259,8 @@
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    scales: {
-                        y: { beginAtZero: true, max: 100, ticks: { callback: value => value + '%' } }
-                    },
-                    plugins: {
-                        tooltip: { callbacks: { label: context => ` Exactitud: ${context.raw}%` } }
-                    }
+                    scales: { y: { beginAtZero: true, max: 100, ticks: { callback: value => value + '%' } } },
+                    plugins: { tooltip: { callbacks: { label: context => ` Exactitud: ${context.raw}%` } } }
                 }
             });
 
@@ -272,22 +281,45 @@
                 options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
             });
 
-            // 3. Gráfico de Proporción General (Status)
-            const ctxEst = document.getElementById('chartEstado').getContext('2d');
-            if(chartEst) chartEst.destroy();
-            chartEst = new Chart(ctxEst, {
-                type: 'pie',
+            // 3. NUEVO GRÁFICO TIPO DONA (Composición Interna de Discrepancias)
+            const ctxDona = document.getElementById('chartDonaDiscrepancias').getContext('2d');
+            if(chartDonaObj) chartDonaObj.destroy();
+            chartDonaObj = new Chart(ctxDona, {
+                type: 'doughnut', // Transforma el gráfico en tipo Dona
                 data: {
-                    labels: ['Auditorías Correctas (OK)', 'Auditorías Incorrectas (DISCREPANCY)'],
-                    datasets: [{ data: [ok, err], backgroundColor: ['var(--success)', 'var(--masterbus-red)'], borderWidth: 2, borderColor: '#ffffff' }]
+                    labels: ['Discrepancias Positivas', 'Discrepancias Negativas'],
+                    datasets: [{
+                        data: [positivas, negativas],
+                        backgroundColor: ['var(--success)', 'var(--masterbus-red)'], // Verde para Positivas, Rojo para Negativas
+                        borderWidth: 3,
+                        borderColor: '#ffffff',
+                        hoverOffset: 4
+                    }]
                 },
-                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
+                options: { 
+                    responsive: true, 
+                    maintainAspectRatio: false, 
+                    plugins: { 
+                        legend: { position: 'bottom' },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let totalDisc = positivas + negativas;
+                                    let valor = context.raw;
+                                    let porcentaje = totalDisc > 0 ? ((valor / totalDisc) * 100).toFixed(1) : 0;
+                                    return ` ${context.label}: ${valor} (${porcentaje}%)`;
+                                }
+                            }
+                        }
+                    },
+                    cutout: '65%' // Define el grosor del hueco interior de la dona
+                }
             });
         }
 
         window.onload = () => {
             procesarDashboard();
-            setInterval(procesarDashboard, 300000); // Auto-refresco cada 5 minutos
+            setInterval(procesarDashboard, 300000);
         };
     </script>
 </body>
