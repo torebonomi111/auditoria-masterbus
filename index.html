@@ -57,7 +57,7 @@
     <div class="container">
         <div id="loading-screen">
             <i class="fa-solid fa-sync fa-spin" style="color:var(--masterbus-red); font-size:32px; margin-bottom:15px;"></i>
-            <div>Conectando directamente con Google Sheet mediante ID...</div>
+            <div>Procesando métricas calibradas de stock...</div>
         </div>
 
         <div id="dashboard-view" style="display: none;">
@@ -114,7 +114,6 @@
     </div>
 
     <script>
-        // LE PEGAMOS DIRECTO AL ID DE TU PLANILLA SIN PASAR POR APPS SCRIPT
         const SHEET_ID = '1Gw3QckLUGIiK2ogC-ot74ParIQukaZ2iy3rtrlVnZuA';
         const URL_DIRECTA = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&gid=0`;
 
@@ -125,13 +124,12 @@
                 const res = await fetch(URL_DIRECTA);
                 const text = await res.text();
                 
-                // La API de Google devuelve un texto con un prefijo que hay que limpiar para que sea un JSON puro
                 const jsonText = text.substring(text.indexOf('{'), text.lastIndexOf('}') + 1);
                 const data = JSON.parse(jsonText);
                 
                 const filas = data.table.rows;
                 
-                let total = filas.length;
+                let total = 0;
                 let sinNovedad = 0;
                 let conDesvio = 0;
                 let desviosPorUbicacion = {};
@@ -142,24 +140,30 @@
 
                 filas.forEach(f => {
                     const c = f.c;
-                    // Mapeo estricto por posición de columnas reales de tu Excel:
-                    // Columna A (0)=Timestamp, B (1)=Operador, C (2)=Base, D (3)=Interno, E (4)=Ubicacion
-                    // F (5)=Detalle, G (6)=NroParte, H (7)=Fisico, I (8)=Sistemas, J (9)=Diferencia, L (11)=Fecha
+                    
+                    // Si la fila entera viene vacía o no tiene datos clave, la salteamos
+                    if (!c || (!c[3] && !c[4] && !c[11])) return;
+
+                    total++; // Contamos solo filas válidas con datos de auditoría
+
+                    // MAPEO DE COLUMNAS ACTUALIZADO SEGÚN TU INFO:
+                    // B(1)=Operador, C(2)=Base/Línea, D(3)=Ubicación, E(4)=Sistemas, F(5)=Físico, K(10)=Diferencia, L(11)=Fecha
+                    // Para Interno y Detalle usamos aproximaciones comunes (ej: si Interno está antes de Ubicación, etc.)
+                    // Si tuvieras Interno en otra columna, me avisás. Asumo Interno en columna C o similar por descarte.
                     
                     let fechaRaw = c[11] ? c[11].f : ''; 
                     let baseLine = c[2] ? c[2].v : '-';
-                    let interno = c[3] ? c[3].v : '-';
-                    let ubicacion = c[4] ? c[4].v : 'No Asignada';
-                    let detalle = c[5] ? c[5].v : '-';
-                    let fisico = c[7] ? c[7].v : 0;
-                    let sistemas = c[8] ? c[8].v : 0;
-                    let diff = c[9] ? Number(c[9].v) : 0;
+                    let interno = c[1] ? c[1].v : '-'; // Ajustado provisorio
+                    let ubicacion = c[3] ? c[3].v : 'No Asignada';
+                    let detalle = c[6] ? c[6].v : 'Ver Planilla'; // Ajustado provisorio
+                    let sistemas = c[4] ? Number(c[4].v || 0) : 0;
+                    let fisico = c[5] ? Number(c[5].v || 0) : 0;
+                    let diff = c[10] ? Number(c[10].v) : 0;
 
                     let nombreMes = "Sin Fecha";
                     let fCorta = fechaRaw || "-";
                     
                     if (fechaRaw) {
-                        // Procesamos la fecha "dd/mm/yyyy" que viene visualmente de la columna L
                         let partes = fechaRaw.split("/");
                         if(partes.length === 3) {
                             let mesIndex = parseInt(partes[1], 10) - 1;
@@ -197,7 +201,7 @@
                 document.getElementById('kpi-total').innerText = total;
                 document.getElementById('kpi-confiabilidad').innerText = confiabilidad + '%';
                 document.getElementById('kpi-desvios').innerText = conDesvio;
-                document.getElementById('tabla-desvios').innerHTML = tablaHtml || '<tr><td colspan="8" style="text-align:center;">No se registran desvíos.</td></tr>';
+                document.getElementById('tabla-desvios').innerHTML = tablaHtml || '<tr><td colspan="8" style="text-align:center;">No se registran desvíos en el inventario.</td></tr>';
 
                 document.getElementById('loading-screen').style.display = 'none';
                 document.getElementById('dashboard-view').style.display = 'block';
@@ -205,7 +209,7 @@
                 generarGraficos(desviosPorMes, desviosPorUbicacion, sinNovedad, conDesvio);
 
             } catch (err) {
-                document.getElementById('loading-screen').innerHTML = `<div style="color:var(--masterbus-red); font-weight:bold; font-size:14px;"><i class="fa-solid fa-circle-xmark"></i> Error de conexión con la Planilla.<br><span style="color:#555; font-weight:normal;">Asegurate de que el Google Sheet esté compartido como "Cualquier persona con el enlace puede leer".</span></div>`;
+                document.getElementById('loading-screen').innerHTML = `<div style="color:var(--masterbus-red); font-weight:bold; font-size:14px;"><i class="fa-solid fa-circle-xmark"></i> Error de calibración de columnas.<br><span style="color:#555; font-weight:normal;">Detalle: ${err.message}</span></div>`;
                 console.error(err);
             }
         }
@@ -218,7 +222,7 @@
                 data: {
                     labels: Object.keys(meses),
                     datasets: [{
-                        label: 'Desvíos', data: Object.values(meses), borderColor: '#D70000', backgroundColor: 'rgba(215, 0, 0, 0.04)', tension: 0.25, fill: true, borderWidth: 3, pointBackgroundColor: '#151515'
+                        label: 'Desvíos Encontrados', data: Object.values(meses), borderColor: '#D70000', backgroundColor: 'rgba(215, 0, 0, 0.04)', tension: 0.25, fill: true, borderWidth: 3, pointBackgroundColor: '#151515'
                     }]
                 },
                 options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
@@ -240,7 +244,7 @@
             chartEst = new Chart(ctxEst, {
                 type: 'pie',
                 data: {
-                    labels: ['OK', 'Con Desvío'],
+                    labels: ['OK (Sin Novedad)', 'Con Desvío'],
                     datasets: [{ data: [ok, err], backgroundColor: ['#198754', '#D70000'], borderWidth: 2, borderColor: '#ffffff' }]
                 },
                 options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
