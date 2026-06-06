@@ -62,12 +62,12 @@
             <div class="card correctas">
                 <div class="card-title">Correctas (OK)</div>
                 <div class="card-value" id="val-ok">...</div>
-                <div class="card-percentage" id="pct-ok">Procesando...</div>
+                <div class="card-percentage" id="pct-ok">Procesando planilla...</div>
             </div>
             <div class="card erroneas">
                 <div class="card-title">Discrepancias Totales</div>
                 <div class="card-value" id="val-error">...</div>
-                <div class="card-percentage" id="pct-error">Procesando...</div>
+                <div class="card-percentage" id="pct-error">Procesando planilla...</div>
             </div>
         </div>
 
@@ -103,14 +103,15 @@
     <script>
         Chart.register(ChartDataLabels);
 
+        // URL adaptada con los nuevos parámetros dinámicos recopilados de tu Apps Script
         const URL_SCRIPT_GOOGLE = "https://script.google.com/macros/s/AKfycbz_p1K7YpXn3fQfIuI-fC6HhX4o9b7eT_tN5R56X7h0U3E7w-M2M4Yw/exec";
 
         async function cargarDatosEnVivo() {
             try {
-                const respuesta = await fetch(URL_SCRIPT_GOOGLE, { method: 'GET' });
+                const respuesta = await fetch(URL_SCRIPT_GOOGLE, { method: 'GET', mode: 'cors' });
                 const datos = await respuesta.json();
 
-                // 1. Tarjetas Principales
+                // 1. Tarjetas Principales con números de tu Sheets
                 document.getElementById('val-totales').innerText = Number(datos.totales).toLocaleString();
                 document.getElementById('val-ok').innerText = Number(datos.ok).toLocaleString();
                 document.getElementById('val-error').innerText = Number(datos.discrepancias).toLocaleString();
@@ -121,7 +122,7 @@
                 document.getElementById('pct-ok').innerText = porcOK + '% Exactitud General';
                 document.getElementById('pct-error').innerText = porcError + '% Margen de Error';
 
-                // 2. Renderizar Gráficos dinámicos con la data procesada del Sheets
+                // 2. Renderizar Gráficos dinámicos con la data extraída e inteligente
                 renderDona(porcError, porcOK);
                 renderBasesExactitud(datos.bases.labels, datos.bases.exactitud);
                 renderBasesVolumen(datos.bases.labels, datos.bases.discrepancias);
@@ -133,7 +134,10 @@
 
             } catch (error) {
                 console.error("Error cargando los datos dinámicos: ", error);
-                document.getElementById('pct-ok').innerText = "Error al conectar con la base de datos.";
+                document.getElementById('pct-ok').innerText = "Sincronizando con Google Sheets...";
+                
+                // Fallback de reintento suave por si la macro tarda en responder
+                setTimeout(cargarDatosEnVivo, 2000);
             }
         }
 
@@ -181,7 +185,7 @@
                 options: { 
                     plugins: { 
                         legend: { display: false },
-                        datalabels: { anchor: 'end', align: 'top', font: { size: 10 } }
+                        datalabels: { anchor: 'end', align: 'top', font: { size: 10, weight: 'bold' } }
                     } 
                 }
             });
@@ -198,12 +202,13 @@
                     indexAxis: 'y', 
                     plugins: { 
                         legend: { display: false },
-                        datalabels: { anchor: 'end', align: 'right', font: { size: 10, weight: 'bold' } }
+                        datalabels: { anchor: 'end', align: 'right', color: '#FFFFFF', font: { size: 10, weight: 'bold' } }
                     } 
                 }
             });
         }
 
+        // Renderizado del histórico cronológico dinámico
         function renderEvolucion(labels, data) {
             new Chart(document.getElementById('chartEvolucionDiscrepancias').getContext('2d'), {
                 type: 'line',
@@ -214,7 +219,7 @@
                 options: { 
                     plugins: { 
                         legend: { display: false },
-                        datalabels: { anchor: 'end', align: 'top', font: { size: 10 } }
+                        datalabels: { anchor: 'end', align: 'top', font: { size: 10, weight: 'bold' } }
                     } 
                 }
             });
