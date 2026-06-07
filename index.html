@@ -159,11 +159,45 @@
                 let datosBases = {}; 
                 let tablaHtml = '';
 
+                let desviosPorMes = {};
+
                 filas.forEach(f => {
                     const c = f.c;
                     if (!c || !c[11]) return; // Requiere fecha válida en L
 
+                    // Debemos definir qué es status (asumiendo que está en la columna correspondiente, ej: c[12])
+                    let status = c[12] ? c[12].v : ''; 
+
+                    // 1. Lógica de Discrepancias por Mes
+                    if (status === "DISCREPANCY") {
+                        let fechaRaw = c[11].f; 
+                        if (fechaRaw) {
+                            let partes = fechaRaw.split("/"); 
+                            let mesAno = `${partes[1]}/${partes[2]}`; 
+                            desviosPorMes[mesAno] = (desviosPorMes[mesAno] || 0) + 1;
+                        }
+                    }
+
+                    // 2. Aquí sigue tu lógica de conteo de bases, totales, etc.
                     total++;
+                    // ... (resto de tu código anterior)
+                });
+
+                let labelsMeses = Object.keys(desviosPorMes).sort();
+                let valoresMeses = labelsMeses.map(m => desviosPorMes[m]);
+
+    // Y aquí llamas a la función que actualiza los gráficos:
+                generarGraficos(
+                    labelsMeses, 
+                    valoresMeses, 
+                    basesLabels, 
+                    basesExactitudPct, 
+                    desviosPorUbicacion, 
+                    discPositivas, 
+                    discNegativas
+);
+
+} // <--- ESTA LLAVE ES LA QUE CIERRA LA FUNCIÓN "procesarDashboard"
 
                     let sku = c[1] ? c[1].v : '-';
                     let description = c[2] ? c[2].v : '-';
