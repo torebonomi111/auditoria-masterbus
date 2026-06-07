@@ -84,7 +84,7 @@
 
             <div class="grid-dashboard">
                 <div class="card-chart grid-full-width">
-                    <h2><i class="fa-solid fa-chart-bar"></i> Exactitud de las Bases Operativas</h2>
+                    <h2><i class="fa-solid fa-chart-bar"></i> Porcentaje de Exactitud por Base Operativa</h2>
                     <div class="canvas-container" style="height: 250px;"><canvas id="chartBases"></canvas></div>
                 </div>
 
@@ -250,35 +250,17 @@
                     datasets: [{
                         label: '% Exactitud de Stock',
                         data: exactitudY,
-                        backgroundColor: 'rgba(0, 0, 0, 1)',
+                        backgroundColor: 'rgba(25, 135, 84, 0.85)',
                         borderColor: 'var(--success)',
                         borderWidth: 1,
                         borderRadius: 3
                     }]
                 },
                 options: {
-    responsive: true,
-    maintainAspectRatio: false,
-    barPercentage: 0.4,    // AGREGÁ ESTA LÍNEA AQUÍ
-    categoryPercentage: 0.8, // AGREGÁ ESTA LÍNEA AQUÍ
-    plugins: {
-        legend: { display: false },
-        title: {
-            display: true,
-            text: 'EXACTITUD DE LAS BASES OPERATIVAS',
-            font: { size: 14, weight: 'bold' },
-            padding: 20
-        }
-    },
-    scales: {
-        y: { 
-            beginAtZero: true, 
-            max: 100, 
-            grid: { display: false }, // ESTO LIMPIA EL FONDO
-            ticks: { callback: value => value + '%' } 
-        },
-        x: {
-            grid: { display: false } // ESTO TAMBIÉN
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: { y: { beginAtZero: true, max: 100, ticks: { callback: value => value + '%' } } },
+                    plugins: { tooltip: { callbacks: { label: context => ` Exactitud: ${context.raw}%` } } }
                 }
             });
 
