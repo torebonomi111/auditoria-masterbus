@@ -183,20 +183,6 @@
                     // ... (resto de tu código anterior)
                 });
 
-                let labelsMeses = Object.keys(desviosPorMes).sort();
-                let valoresMeses = labelsMeses.map(m => desviosPorMes[m]);
-
-    // Y aquí llamas a la función que actualiza los gráficos:
-                generarGraficos(
-                    labelsMeses, 
-                    valoresMeses, 
-                    basesLabels, 
-                    basesExactitudPct, 
-                    desviosPorUbicacion, 
-                    discPositivas, 
-                    discNegativas
-);
-
 } // <--- ESTA LLAVE ES LA QUE CIERRA LA FUNCIÓN "procesarDashboard"
 
                     let sku = c[1] ? c[1].v : '-';
