@@ -166,7 +166,7 @@
                     if (!c || !c[11]) return; // Requiere fecha válida en L
 
                     // Debemos definir qué es status (asumiendo que está en la columna correspondiente, ej: c[12])
-                    let status = c[12] ? c[12].v : ''; 
+                    let status = c[6] ? c[6].v : ''; 
 
                     // 1. Lógica de Discrepancias por Mes
                     if (status === "DISCREPANCY") {
