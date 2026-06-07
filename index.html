@@ -82,10 +82,19 @@
                 </div>
             </div>
 
-          <div class="card-chart">
-    <h2><i class="fa-solid fa-chart-bar"></i> EXACTITUD DE LAS BASES OPERATIVAS</h2>
-    <div class="canvas-container" style="height: 300px;">
-        <canvas id="chartBases"></canvas>
+<div style="display: flex; gap: 20px; margin-bottom: 25px;">
+    <div class="card-chart" style="flex: 1;">
+        <h2><i class="fa-solid fa-chart-line"></i> EVOLUCIÓN MENSUAL</h2>
+        <div class="canvas-container" style="height: 300px;">
+            <canvas id="chartEvolucion"></canvas>
+        </div>
+    </div>
+
+    <div class="card-chart" style="flex: 1;">
+        <h2><i class="fa-solid fa-chart-bar"></i> EXACTITUD DE LAS BASES OPERATIVAS</h2>
+        <div class="canvas-container" style="height: 300px;">
+            <canvas id="chartBases"></canvas>
+        </div>
     </div>
 </div>
                 </div>
@@ -240,32 +249,50 @@
             }
         }
 
-        function generarGraficos(basesX, exactitudY, ubicaciones, positivas, negativas) {
-            // 1. Gráfico de Exactitud de Bases
-            const ctxBases = document.getElementById('chartBases').getContext('2d');
-            if(chartBasesObj) chartBasesObj.destroy();
-            chartBasesObj = new Chart(ctxBases, {
-                type: 'bar',
-                data: {
-                    labels: basesX,
-                    datasets: [{
-                        label: '% Exactitud de Stock',
-                        data: exactitudY,
-                        backgroundColor: 'rgba(0, 0, 0, 1)',
-                        borderColor: 'var(--success)',
-                        borderWidth: 1,
-                        borderRadius: 3
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: { y: { beginAtZero: true, max: 100, ticks: { callback: value => value + '%' } } },
-                    plugins: { tooltip: { callbacks: { label: context => ` Exactitud: ${context.raw}%` } } }
-                }
-            });
+function generarGraficos(mesesEvo, valoresEvo, basesX, exactitudY, ubicaciones, positivas, negativas) {
+    
+    // 1. Gráfico de Evolución Mensual (NUEVO)
+    const ctxEvo = document.getElementById('chartEvolucion').getContext('2d');
+    if(typeof chartEvoObj !== 'undefined') chartEvoObj.destroy();
+    chartEvoObj = new Chart(ctxEvo, {
+        type: 'line',
+        data: {
+            labels: mesesEvo,
+            datasets: [{
+                label: 'Discrepancias',
+                data: valoresEvo,
+                borderColor: '#D70000',
+                backgroundColor: 'rgba(215, 0, 0, 0.1)',
+                tension: 0.3,
+                fill: true,
+                borderWidth: 3
+            }]
+        },
+        options: { responsive: true, maintainAspectRatio: false }
+    });
 
-            // 2. Gráfico de Ubicaciones
+    // 2. Gráfico de Exactitud de Bases (TU CÓDIGO ACTUALIZADO)
+    const ctxBases = document.getElementById('chartBases').getContext('2d');
+    if(typeof chartBasesObj !== 'undefined') chartBasesObj.destroy();
+    chartBasesObj = new Chart(ctxBases, {
+        type: 'bar',
+        data: {
+            labels: basesX,
+            datasets: [{
+                label: '% Exactitud',
+                data: exactitudY,
+                backgroundColor: '#000000',
+                borderRadius: 3
+            }]
+        },
+        options: { 
+            responsive: true, 
+            maintainAspectRatio: false,
+            scales: { x: { ticks: { maxRotation: 45, minRotation: 45 } } }
+        }
+    });
+
+            // 3. Gráfico de Ubicaciones
             const ctxUbi = document.getElementById('chartUbicaciones').getContext('2d');
             if(chartUbi) chartUbi.destroy();
             chartUbi = new Chart(ctxUbi, {
@@ -282,7 +309,7 @@
                 options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
             });
 
-            // 3. NUEVO GRÁFICO TIPO DONA (Composición Interna de Discrepancias)
+            // 4. NUEVO GRÁFICO TIPO DONA (Composición Interna de Discrepancias)
             const ctxDona = document.getElementById('chartDonaDiscrepancias').getContext('2d');
             if(chartDonaObj) chartDonaObj.destroy();
             chartDonaObj = new Chart(ctxDona, {
