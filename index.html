@@ -226,7 +226,6 @@
                 document.getElementById('kpi-incorrectas').innerText = pctIncorrectas + '%';
                 document.getElementById('tabla-desvios').innerHTML = tablaHtml || '<tr><td colspan="8" style="text-align:center;">No se registran discrepancias.</td></tr>';
 
-                // Procesar datos para el gráfico de barras
                 basesLabels = [];
                 basesExactitudPct = [];
 
@@ -234,26 +233,24 @@
                     basesLabels.push(b);
                     let exactitud = ((datosBases[b].ok / datosBases[b].totales) * 100).toFixed(1);
                     basesExactitudPct.push(exactitud);
-                }); // <--- ESTO FALTABA: cerrar el forEach de datosBases
+                });
 
-                // Preparar datos para el gráfico de evolución (meses)
                 let labelsMeses = Object.keys(desviosPorMes).sort();
                 let valoresMeses = labelsMeses.map(m => desviosPorMes[m]);
 
-                // Llamada a la función unificada
+                // Llamada única a la función
                 generarGraficos(labelsMeses, valoresMeses, basesLabels, basesExactitudPct, discPositivas, discNegativas);
 
                 document.getElementById('loading-screen').style.display = 'none';
                 document.getElementById('dashboard-view').style.display = 'block';
-        
-generarGraficos(labelsMeses, valoresMeses, basesLabels, basesExactitudPct, discPositivas, discNegativas);
-                } // Este cierra el try
+
             } catch (err) {
                 console.error(err);
                 document.getElementById('loading-screen').innerHTML = `<div style="color:red;">Error: ${err.message}</div>`;
             }
-        
-        function generarGraficos(meses, valoresMeses, basesX, exactitudY, positivas, negativas) 
+        } // Cierra la función procesarDashboard
+
+        function generarGraficos(meses, valoresMeses, basesX, exactitudY, positivas, negativas) { // <-- Agregué la llave de apertura
             
             // 1. NUEVO: Gráfico de Evolución Mensual (Línea)
             const ctxEvo = document.getElementById('chartEvolucion').getContext('2d');
