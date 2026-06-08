@@ -82,12 +82,18 @@
                 </div>
             </div>
 
-            <div class="grid-dashboard">
-                <div class="card-chart grid-full-width">
-                    <h2><i class="fa-solid fa-chart-bar"></i> Porcentaje de Exactitud por Base Operativa</h2>
-                    <div class="canvas-container" style="height: 250px;"><canvas id="chartBases"></canvas></div>
-                </div>
-
+           <div class="grid-dashboard">
+    <div style="display: flex; gap: 20px; grid-column: 1 / -1; margin-bottom: 25px;">
+        <div class="card-chart" style="flex: 1;">
+            <h2><i class="fa-solid fa-chart-line"></i> EVOLUCIÓN MENSUAL</h2>
+            <div class="canvas-container" style="height: 250px;"><canvas id="chartEvolucion"></canvas></div>
+        </div>
+        <div class="card-chart" style="flex: 1;">
+            <h2><i class="fa-solid fa-chart-bar"></i> EXACTITUD POR BASE</h2>
+            <div class="canvas-container" style="height: 250px;"><canvas id="chartBases"></canvas></div>
+        </div>
+    </div>
+    </div>
                 <div class="card-chart">
                     <h2><i class="fa-solid fa-warehouse"></i> Cantidad de Desvíos por Ubicación (Location)</h2>
                     <div class="canvas-container"><canvas id="chartUbicaciones"></canvas></div>
@@ -149,6 +155,9 @@
                 let datosBases = {}; 
                 let tablaHtml = '';
 
+// Inicializamos la variable antes del forEach
+                let desviosPorMes = {};
+
                 filas.forEach(f => {
                     const c = f.c;
                     if (!c || !c[11]) return; // Requiere fecha válida en L
@@ -163,11 +172,19 @@
                     let status = c[6] ? c[6].v : ''; // G
                     let base = c[9] ? c[9].v : ''; // J
                     let difference = c[10] ? Number(c[10].v) : 0; // K
-                    let fechaRaw = c[11] ? c[11].f : '-'; // L
-                    let tipoDif = c[12] ? c[12].v : ''; // M: POSITIVA o NEGATIVA
+                    let fechaRaw = c[11] ? c[11].f : ''; // L
+                    let tipoDif = c[12] ? c[12].v : ''; // M
+
+                    // Lógica para capturar meses (Evolución)
+                    if (fechaRaw) {
+                        let partes = fechaRaw.split("/");
+                        if (partes.length >= 3) {
+                            let mesAno = `${partes[1]}/${partes[2]}`;
+                            desviosPorMes[mesAno] = (desviosPorMes[mesAno] || 0) + 1;
+                        }
+                    }
 
                     // --- VALIDACIÓN ESTRICTA DE BASE ---
-                    // Ignora el registro para el cálculo por base si está vacío, es blanco o dice "Sin Base"
                     let baseValida = base && base.toString().trim() !== "" && base.toString().toLowerCase() !== "sin base";
 
                     if (baseValida) {
@@ -183,12 +200,8 @@
                     } else if (status === "DISCREPANCY") {
                         incorrectasCount++;
                         
-                        // Clasificación de discrepancias según columna M
-                        if (tipoDif === "POSITIVA") {
-                            discPositivas++;
-                        } else if (tipoDif === "NEGATIVA") {
-                            discNegativas++;
-                        }
+                        if (tipoDif === "POSITIVA") discPositivas++;
+                        else if (tipoDif === "NEGATIVA") discNegativas++;
                         
                         desviosPorUbicacion[location] = (desviosPorUbicacion[location] || 0) + 1;
 
@@ -205,8 +218,7 @@
                                 <td>${theoretical}</td>
                                 <td>${physical}</td>
                                 <td><span class="badge-table ${badgeClass}">${signo}${difference}</span></td>
-                            </tr>
-                        `;
+                            </tr>`;
                     }
                 });
 
@@ -229,6 +241,15 @@
                     basesLabels.push(b);
                     let exactitud = ((datosBases[b].ok / datosBases[b].totales) * 100).toFixed(1);
                     basesExactitudPct.push(exactitud);
+
+                // ... al final de procesarDashboard, antes del catch:
+                let basesLabels = [];
+                let basesExactitudPct = [];
+
+                // AGREGÁ ESTO:
+                let desviosPorMes = {};
+                // ...
+                
                 });
 
                 generarGraficos(basesLabels, basesExactitudPct, desviosPorUbicacion, discPositivas, discNegativas);
@@ -238,11 +259,48 @@
                 console.error(err);
             }
         }
+        
+        function generarGraficos(meses, valoresMeses, basesX, exactitudY, ubicaciones, positivas, negativas) {
+        // 1. NUEVO: Gráfico de Líneas (Evolución)
+        const ctxEvo = document.getElementById('chartEvolucion').getContext('2d');
+        if(chartEvoObj) chartEvoObj.destroy();
+        chartEvoObj = new Chart(ctxEvo, {
+            type: 'line',
+            data: {
+                labels: meses,
+                datasets: [{ label: 'Desvíos', data: valoresMeses, borderColor: '#D70000', tension: 0.3, fill: true, backgroundColor: 'rgba(215, 0, 0, 0.05)' }]
+        },
+            options: { responsive: true, maintainAspectRatio: false }
+    });
 
-        function generarGraficos(basesX, exactitudY, ubicaciones, positivas, negativas) {
-            // 1. Gráfico de Exactitud de Bases
+    // ... y aquí sigue tu código actual para los otros gráficos
+}
+        
+        function generarGraficos(meses, valoresMeses, basesX, exactitudY, ubicaciones, positivas, negativas) {
+            
+            // 1. NUEVO: Gráfico de Evolución Mensual (Línea)
+            const ctxEvo = document.getElementById('chartEvolucion').getContext('2d');
+            if(typeof chartEvoObj !== 'undefined') chartEvoObj.destroy();
+            chartEvoObj = new Chart(ctxEvo, {
+                type: 'line',
+                data: {
+                    labels: meses,
+                    datasets: [{
+                        label: 'Total Desvíos',
+                        data: valoresMeses,
+                        borderColor: '#D70000',
+                        backgroundColor: 'rgba(215, 0, 0, 0.1)',
+                        tension: 0.3,
+                        fill: true,
+                        borderWidth: 3
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+
+            // 2. Gráfico de Exactitud de Bases
             const ctxBases = document.getElementById('chartBases').getContext('2d');
-            if(chartBasesObj) chartBasesObj.destroy();
+            if(typeof chartBasesObj !== 'undefined') chartBasesObj.destroy();
             chartBasesObj = new Chart(ctxBases, {
                 type: 'bar',
                 data: {
@@ -259,14 +317,13 @@
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    scales: { y: { beginAtZero: true, max: 100, ticks: { callback: value => value + '%' } } },
-                    plugins: { tooltip: { callbacks: { label: context => ` Exactitud: ${context.raw}%` } } }
+                    scales: { y: { beginAtZero: true, max: 100, ticks: { callback: value => value + '%' } } }
                 }
             });
 
-            // 2. Gráfico de Ubicaciones
+            // 3. Gráfico de Ubicaciones
             const ctxUbi = document.getElementById('chartUbicaciones').getContext('2d');
-            if(chartUbi) chartUbi.destroy();
+            if(typeof chartUbi !== 'undefined') chartUbi.destroy();
             chartUbi = new Chart(ctxUbi, {
                 type: 'bar',
                 data: {
@@ -274,49 +331,29 @@
                     datasets: [{
                         data: Object.values(ubicaciones),
                         backgroundColor: '#151515',
-                        hoverBackgroundColor: 'var(--masterbus-red)',
                         borderRadius: 2
                     }]
                 },
                 options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
             });
 
-            // 3. NUEVO GRÁFICO TIPO DONA (Composición Interna de Discrepancias)
+            // 4. Gráfico Dona
             const ctxDona = document.getElementById('chartDonaDiscrepancias').getContext('2d');
-            if(chartDonaObj) chartDonaObj.destroy();
+            if(typeof chartDonaObj !== 'undefined') chartDonaObj.destroy();
             chartDonaObj = new Chart(ctxDona, {
-                type: 'doughnut', // Transforma el gráfico en tipo Dona
+                type: 'doughnut',
                 data: {
                     labels: ['Discrepancias Positivas', 'Discrepancias Negativas'],
                     datasets: [{
                         data: [positivas, negativas],
-                        backgroundColor: ['#343a40', '#D70000'], // Verde para Positivas, Rojo para Negativas
+                        backgroundColor: ['#343a40', '#D70000'],
                         borderWidth: 3,
-                        borderColor: '#ffffff',
-                        hoverOffset: 4
+                        borderColor: '#ffffff'
                     }]
                 },
-                options: { 
-                    responsive: true, 
-                    maintainAspectRatio: false, 
-                    plugins: { 
-                        legend: { position: 'bottom' },
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    let totalDisc = positivas + negativas;
-                                    let valor = context.raw;
-                                    let porcentaje = totalDisc > 0 ? ((valor / totalDisc) * 100).toFixed(1) : 0;
-                                    return ` ${context.label}: ${valor} (${porcentaje}%)`;
-                                }
-                            }
-                        }
-                    },
-                    cutout: '65%' // Define el grosor del hueco interior de la dona
-                }
+                options: { responsive: true, maintainAspectRatio: false }
             });
         }
-
         window.onload = () => {
             procesarDashboard();
             setInterval(procesarDashboard, 300000);
