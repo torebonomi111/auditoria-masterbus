@@ -234,8 +234,8 @@
                 document.getElementById('dashboard-view').style.display = 'block';
 
                 // Ejes para el gráfico de barras de exactitud de bases filtradas
-                let basesLabels = [];
-                let basesExactitudPct = [];
+                 basesLabels = [];
+                 basesExactitudPct = [];
 
                 Object.keys(datosBases).forEach(b => {
                     basesLabels.push(b);
@@ -243,8 +243,8 @@
                     basesExactitudPct.push(exactitud);
 
                 // ... al final de procesarDashboard, antes del catch:
-                let basesLabels = [];
-                let basesExactitudPct = [];
+                basesLabels = [];
+                basesExactitudPct = [];
 
                 // AGREGÁ ESTO:
                 desviosPorMes = {};
