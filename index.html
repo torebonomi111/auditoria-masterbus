@@ -251,15 +251,12 @@
     basesX: basesLabels,
     basesY: basesExactitudPct
 });
-// Luego viene tu llamada a generarGraficos(...)
-            
-// Asegurate de pasar TODAS las variables que la función espera:
 generarGraficos(labelsMeses, valoresMeses, basesLabels, basesExactitudPct, discPositivas, discNegativas);
+                } // Este cierra el try
             } catch (err) {
-                document.getElementById('loading-screen').innerHTML = `<div style="color:var(--masterbus-red); font-weight:bold; font-size:14px;"><i class="fa-solid fa-circle-xmark"></i> Error de procesamiento.<br><span style="color:#555; font-weight:normal;">Detalle: ${err.message}</span></div>`;
                 console.error(err);
+                document.getElementById('loading-screen').innerHTML = `<div style="color:red;">Error: ${err.message}</div>`;
             }
-        }
         
         
         function generarGraficos(meses, valoresMeses, basesX, exactitudY, positivas, negativas) {
