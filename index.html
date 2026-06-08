@@ -143,37 +143,23 @@
         let chartBasesObj, chartUbi, chartDonaObj;
 
         async function procesarDashboard() {
-    try {
-        const res = await fetch(URL_DIRECTA);
-        const text = await res.text();
-        
-        const jsonText = text.substring(text.indexOf('{'), text.lastIndexOf('}') + 1);
-        const data = JSON.parse(jsonText);
-        const filas = data.table.rows;
-        
-        // --- DECLARÁ TODO ACÁ ---
-        let total = 0;
-        let correctasCount = 0;
-        let incorrectasCount = 0;
-        let discPositivas = 0;
-        let discNegativas = 0;
-        let totalPerdidasEvitadas = 0; // Acumulador para el total
-        let totalValorDiferencias = 0; // Negativas + Positivas (valor absoluto)
-        let desviosPorUbicacion = {};
-        let datosBases = {}; 
-        let desviosPorMes = {}; // <--- Esta es clave
-        let diccionarioPrecios = {};
-        let tablaHtml = '';
-        let basesLabels = [];     // <--- Asegurate que estas estén acá arriba
-        let basesExactitudPct = []; // <---
-        // -------------------------
+    // 1. Reset de variables al inicio
+    total = 0;
+    correctasCount = 0;
+    incorrectasCount = 0;
+    totalPerdidasEvitadas = 0;
+    totalValorDiferencias = 0;
+    tablaHtml = "";
+    datosBases = {};
+    desviosPorMes = {};
+    desviosPorUbicacion = {};
+    discPositivas = 0;
+    discNegativas = 0;
 
-        // ... dentro de procesarDashboard()
-        totalPerdidasEvitadas = 0; // Reiniciamos el contador global
-document.getElementById('kpi-perdidas-evitadas').innerText = '$' + totalPerdidasEvitadas.toLocaleString('es-AR', {minimumFractionDigits: 2});
-document.getElementById('kpi-valor-total-diferencias').innerText = '$' + totalValorDiferencias.toLocaleString('es-AR', {minimumFractionDigits: 2});
-});
-    // ...
+    try {
+        const response = await fetch(URL_DATOS);
+        const data = await response.json();
+        const filas = data.feed.entry;
 
 // --- DENTRO DEL FOREACH ---
 filas.forEach(f => {
@@ -239,36 +225,26 @@ filas.forEach(f => {
 }); // <--- AQUÍ SE CIERRA EL FOREACH
 
                let pctCorrectas = total > 0 ? ((correctasCount / total) * 100).toFixed(1) : 0;
-                let pctIncorrectas = total > 0 ? ((incorrectasCount / total) * 100).toFixed(1) : 0;
+        let pctIncorrectas = total > 0 ? ((incorrectasCount / total) * 100).toFixed(1) : 0;
 
-                document.getElementById('kpi-total').innerText = total;
-                document.getElementById('kpi-correctas').innerText = pctCorrectas + '%';
-                document.getElementById('kpi-incorrectas').innerText = pctIncorrectas + '%';
-                document.getElementById('tabla-desvios').innerHTML = tablaHtml || '<tr><td colspan="8" style="text-align:center;">No se registran discrepancias.</td></tr>';
+        document.getElementById('kpi-total').innerText = total;
+        document.getElementById('kpi-correctas').innerText = pctCorrectas + '%';
+        document.getElementById('kpi-incorrectas').innerText = pctIncorrectas + '%';
+        document.getElementById('kpi-perdidas-evitadas').innerText = '$' + totalPerdidasEvitadas.toLocaleString('es-AR', {minimumFractionDigits: 2});
+        document.getElementById('kpi-valor-total-diferencias').innerText = '$' + totalValorDiferencias.toLocaleString('es-AR', {minimumFractionDigits: 2});
+        document.getElementById('tabla-desvios').innerHTML = tablaHtml || '<tr><td colspan="8" style="text-align:center;">No hay datos.</td></tr>';
 
-                basesLabels = [];
-                basesExactitudPct = [];
+        // 3. Gráficos
+        generarGraficos(...); // (tus argumentos)
 
-                Object.keys(datosBases).forEach(b => {
-                    basesLabels.push(b);
-                    let exactitud = ((datosBases[b].ok / datosBases[b].totales) * 100).toFixed(1);
-                    basesExactitudPct.push(exactitud);
-                });
+        document.getElementById('loading-screen').style.display = 'none';
+        document.getElementById('dashboard-view').style.display = 'block';
 
-                let labelsMeses = Object.keys(desviosPorMes).sort();
-                let valoresMeses = labelsMeses.map(m => desviosPorMes[m]);
-
-                // Llamada única a la función
-                generarGraficos(labelsMeses, valoresMeses, basesLabels, basesExactitudPct, discPositivas, discNegativas);
-
-                document.getElementById('loading-screen').style.display = 'none';
-                document.getElementById('dashboard-view').style.display = 'block';
-
-            } catch (err) {
-                console.error(err);
-                document.getElementById('loading-screen').innerHTML = `<div style="color:red;">Error: ${err.message}</div>`;
-            }
-        } // Cierra la función procesarDashboard
+    } catch (err) {
+        console.error("Error en procesarDashboard:", err);
+        document.getElementById('loading-screen').innerHTML = `<div style="color:red;">Error al cargar datos.</div>`;
+    } 
+} // <--- Esta es la llave final que cierra TODO
 
         function generarGraficos(meses, valoresMeses, basesX, exactitudY, positivas, negativas) { // <-- Agregué la llave de apertura
             
