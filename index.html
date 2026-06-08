@@ -253,8 +253,7 @@ generarGraficos(labelsMeses, valoresMeses, basesLabels, basesExactitudPct, discP
                 document.getElementById('loading-screen').innerHTML = `<div style="color:red;">Error: ${err.message}</div>`;
             }
         
-        
-        function generarGraficos(meses, valoresMeses, basesX, exactitudY, positivas, negativas) {
+        function generarGraficos(meses, valoresMeses, basesX, exactitudY, positivas, negativas) 
             
             // 1. NUEVO: Gráfico de Evolución Mensual (Línea)
             const ctxEvo = document.getElementById('chartEvolucion').getContext('2d');
