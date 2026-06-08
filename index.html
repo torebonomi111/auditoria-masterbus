@@ -100,6 +100,18 @@
                     <div class="canvas-container"><canvas id="chartDonaDiscrepancias"></canvas></div>
                 </div>
 
+<div class="card">
+    <div class="card-body">
+        <h5>Indicadores Financieros</h5>
+        <div style="font-size: 24px; font-weight: bold; color: #d9534f;">
+            Pérdidas Evitadas: <span id="kpi-perdidas-evitadas">$0.00</span>
+        </div>
+        <div style="font-size: 18px; color: #555; margin-top: 10px;">
+            Valor Total Diferencias: <span id="kpi-valor-total-diferencias">$0.00</span>
+        </div>
+    </div>
+</div>
+            
                 <div class="card-chart grid-full-width">
                     <h2><i class="fa-solid fa-list-check"></i> Monitor Analítico de Desvíos Detectados</h2>
                     <div class="table-responsive">
@@ -145,15 +157,24 @@
         let incorrectasCount = 0;
         let discPositivas = 0;
         let discNegativas = 0;
+        let totalPerdidasEvitadas = 0; // Acumulador para el total
+        let totalValorDiferencias = 0; // Negativas + Positivas (valor absoluto)
         let desviosPorUbicacion = {};
         let datosBases = {}; 
         let desviosPorMes = {}; // <--- Esta es clave
+        let diccionarioPrecios = {};
         let tablaHtml = '';
         let basesLabels = [];     // <--- Asegurate que estas estén acá arriba
         let basesExactitudPct = []; // <---
         // -------------------------
 
-// Inicializamos la variable antes del forEach
+        // ... dentro de procesarDashboard()
+        totalPerdidasEvitadas = 0; // Reiniciamos el contador global
+document.getElementById('kpi-perdidas-evitadas').innerText = '$' + totalPerdidasEvitadas.toLocaleString('es-AR', {minimumFractionDigits: 2});
+document.getElementById('kpi-valor-total-diferencias').innerText = '$' + totalValorDiferencias.toLocaleString('es-AR', {minimumFractionDigits: 2});
+});
+    // ...
+
                 filas.forEach(f => {
                     const c = f.c;
                     if (!c || !c[11]) return; // Requiere fecha válida en L
@@ -170,6 +191,26 @@
                     let difference = c[10] ? Number(c[10].v) : 0; // K
                     let fechaRaw = c[11] ? c[11].f : ''; // L
                     let tipoDif = c[12] ? c[12].v : ''; // M
+                    // ... ya definiste base, sku y difference
+                    let costoUnitario = diccionarioPrecios[`${base}-${sku}`] || 0;
+                    let valorAbsoluto = Math.abs(difference) * costoUnitario;
+
+
+if (difference < 0) {
+    totalPerdidasEvitadas += Math.abs(difference) * costoUnitario;
+
+    // ... dentro de tu forEach, después de las definiciones de let sku, base, difference...
+
+// Suma para todas las discrepancias (Total de dinero en juego)
+if (status === "DISCREPANCY") {
+    totalValorDiferencias += valorAbsoluto;
+}
+
+// Suma para pérdidas evitadas (Solo diferencias negativas/faltantes)
+if (difference < 0) {
+    totalPerdidasEvitadas += valorAbsoluto;
+}
+}
 
                     // Lógica para capturar meses (Evolución)
                     if (fechaRaw) {
@@ -312,10 +353,51 @@
                 options: { responsive: true, maintainAspectRatio: false }
             });
         }
-        window.onload = () => {
-            procesarDashboard();
-            setInterval(procesarDashboard, 300000);
-        };
+// --- FUNCIÓN PARA CARGAR LOS PRECIOS ---
+let diccionarioPrecios = {}; // Esta es la variable global donde guardaremos los precios
+
+async function cargarPrecios() {
+    const url = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTmsaR3HAfCf965pC3rUVkkHNByDnougE2SY5r5_j8I9dTyxRFgyfclWr7yH2-caw/pub?gid=1808497775&single=true&output=csv";
+    
+    try {
+        const response = await fetch(url);
+        const data = await response.text();
+        const filas = data.split('\n');
+        
+        // Empezamos en 1 para saltar la fila de títulos (Base, SKU, Precio)
+        for (let i = 2; i < filas.length; i++) {
+            const columnas = filas[i].split(',');
+            if (columnas.length >= 4) {
+                const base = columnas[1] ? columnas[1].trim() : "";
+                const sku = columnas[2] ? columnas[2].trim() : "";
+                const precioRaw = columnas[3] ? columnas[3].trim() : "";
+                
+                const precio = parseFloat(precioRaw.replace(/[^0-9.-]+/g, ""));
+                
+                if (base && sku && !isNaN(precio)) {
+                    diccionarioPrecios[`${base}-${sku}`] = precio;
+                }
+            }
+        }
+        console.log("¡Precios cargados! Cantidad de productos:", Object.keys(diccionarioPrecios).length);
+    } catch (err) {
+        console.error("Error al cargar precios:", err);
+    }
+}
+// Reemplazamos el window.onload antiguo por este nuevo
+        window.onload = async () => {
+    // 1. Primero cargamos los precios (el diccionario)
+    await cargarPrecios();
+    
+    // 2. Luego, recién ahí, procesamos el dashboard
+    await procesarDashboard();
+    
+    // 3. Programamos la actualización cada 5 minutos
+    setInterval(async () => {
+        await cargarPrecios(); // Actualizamos precios por si cambiaron en el Drive
+        await procesarDashboard(); // Refrescamos el dashboard
+    }, 300000);
+};
     </script>
 </body>
 </html>
