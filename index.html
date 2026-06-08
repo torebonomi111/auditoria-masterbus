@@ -263,24 +263,8 @@
         
         
         function generarGraficos(meses, valoresMeses, basesX, exactitudY, positivas, negativas) {
-        // 1. NUEVO: Gráfico de Líneas (Evolución)
-        const ctxEvo = document.getElementById('chartEvolucion').getContext('2d');
-        if(chartEvoObj) chartEvoObj.destroy();
-        chartEvoObj = new Chart(ctxEvo, {
-            type: 'line',
-            data: {
-                labels: meses,
-                datasets: [{ label: 'Desvíos', data: valoresMeses, borderColor: '#D70000', tension: 0.3, fill: true, backgroundColor: 'rgba(215, 0, 0, 0.05)' }]
-        },
-            options: { responsive: true, maintainAspectRatio: false }
-    });
-
-    // ... y aquí sigue tu código actual para los otros gráficos
-}
-        
-        function generarGraficos(meses, valoresMeses, basesX, exactitudY, positivas, negativas) {
             
-            // 2. NUEVO: Gráfico de Evolución Mensual (Línea)
+            // 1. NUEVO: Gráfico de Evolución Mensual (Línea)
             const ctxEvo = document.getElementById('chartEvolucion').getContext('2d');
             if(typeof chartEvoObj !== 'undefined') chartEvoObj.destroy();
             chartEvoObj = new Chart(ctxEvo, {
@@ -300,7 +284,7 @@
                 options: { responsive: true, maintainAspectRatio: false }
             });
 
-            // 3. Gráfico de Exactitud de Bases
+            // 2. Gráfico de Exactitud de Bases
             const ctxBases = document.getElementById('chartBases').getContext('2d');
             if(typeof chartBasesObj !== 'undefined') chartBasesObj.destroy();
             chartBasesObj = new Chart(ctxBases, {
@@ -323,7 +307,7 @@
                 }
             });
 
-            // 4. Gráfico Dona
+            // 3. Gráfico Dona
             const ctxDona = document.getElementById('chartDonaDiscrepancias').getContext('2d');
             if(typeof chartDonaObj !== 'undefined') chartDonaObj.destroy();
             chartDonaObj = new Chart(ctxDona, {
