@@ -94,10 +94,6 @@
         </div>
     </div>
     </div>
-                <div class="card-chart">
-                    <h2><i class="fa-solid fa-warehouse"></i> Cantidad de Desvíos por Ubicación (Location)</h2>
-                    <div class="canvas-container"><canvas id="chartUbicaciones"></canvas></div>
-                </div>
 
                 <div class="card-chart">
                     <h2><i class="fa-solid fa-chart-pie"></i> Composición de Discrepancias Detectadas</h2>
@@ -248,10 +244,16 @@
                 // AGREGÁ ESTO:
                 desviosPorMes = {};
                 // ...
-                
-                });
 
-                generarGraficos(basesLabels, basesExactitudPct, desviosPorUbicacion, discPositivas, discNegativas);
+                    console.log("Datos para gráficos:", {
+    meses: labelsMeses,
+    valores: valoresMeses,
+    basesX: basesLabels,
+    basesY: basesExactitudPct
+});
+// Luego viene tu llamada a generarGraficos(...)
+            
+                generarGraficos(basesLabels, basesExactitudPct, discPositivas, discNegativas);
 
             } catch (err) {
                 document.getElementById('loading-screen').innerHTML = `<div style="color:var(--masterbus-red); font-weight:bold; font-size:14px;"><i class="fa-solid fa-circle-xmark"></i> Error de procesamiento.<br><span style="color:#555; font-weight:normal;">Detalle: ${err.message}</span></div>`;
@@ -259,7 +261,8 @@
             }
         }
         
-        function generarGraficos(meses, valoresMeses, basesX, exactitudY, ubicaciones, positivas, negativas) {
+        
+        function generarGraficos(meses, valoresMeses, basesX, exactitudY, positivas, negativas) {
         // 1. NUEVO: Gráfico de Líneas (Evolución)
         const ctxEvo = document.getElementById('chartEvolucion').getContext('2d');
         if(chartEvoObj) chartEvoObj.destroy();
@@ -275,9 +278,9 @@
     // ... y aquí sigue tu código actual para los otros gráficos
 }
         
-        function generarGraficos(meses, valoresMeses, basesX, exactitudY, ubicaciones, positivas, negativas) {
+        function generarGraficos(meses, valoresMeses, basesX, exactitudY, positivas, negativas) {
             
-            // 1. NUEVO: Gráfico de Evolución Mensual (Línea)
+            // 2. NUEVO: Gráfico de Evolución Mensual (Línea)
             const ctxEvo = document.getElementById('chartEvolucion').getContext('2d');
             if(typeof chartEvoObj !== 'undefined') chartEvoObj.destroy();
             chartEvoObj = new Chart(ctxEvo, {
@@ -297,7 +300,7 @@
                 options: { responsive: true, maintainAspectRatio: false }
             });
 
-            // 2. Gráfico de Exactitud de Bases
+            // 3. Gráfico de Exactitud de Bases
             const ctxBases = document.getElementById('chartBases').getContext('2d');
             if(typeof chartBasesObj !== 'undefined') chartBasesObj.destroy();
             chartBasesObj = new Chart(ctxBases, {
@@ -318,22 +321,6 @@
                     maintainAspectRatio: false,
                     scales: { y: { beginAtZero: true, max: 100, ticks: { callback: value => value + '%' } } }
                 }
-            });
-
-            // 3. Gráfico de Ubicaciones
-            const ctxUbi = document.getElementById('chartUbicaciones').getContext('2d');
-            if(typeof chartUbi !== 'undefined') chartUbi.destroy();
-            chartUbi = new Chart(ctxUbi, {
-                type: 'bar',
-                data: {
-                    labels: Object.keys(ubicaciones),
-                    datasets: [{
-                        data: Object.values(ubicaciones),
-                        backgroundColor: '#151515',
-                        borderRadius: 2
-                    }]
-                },
-                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
             });
 
             // 4. Gráfico Dona
