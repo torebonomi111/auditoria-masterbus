@@ -218,7 +218,7 @@
                     }
                 });
 
-                let pctCorrectas = total > 0 ? ((correctasCount / total) * 100).toFixed(1) : 0;
+               let pctCorrectas = total > 0 ? ((correctasCount / total) * 100).toFixed(1) : 0;
                 let pctIncorrectas = total > 0 ? ((incorrectasCount / total) * 100).toFixed(1) : 0;
 
                 document.getElementById('kpi-total').innerText = total;
@@ -226,31 +226,26 @@
                 document.getElementById('kpi-incorrectas').innerText = pctIncorrectas + '%';
                 document.getElementById('tabla-desvios').innerHTML = tablaHtml || '<tr><td colspan="8" style="text-align:center;">No se registran discrepancias.</td></tr>';
 
-                document.getElementById('loading-screen').style.display = 'none';
-                document.getElementById('dashboard-view').style.display = 'block';
-
-                // Ejes para el gráfico de barras de exactitud de bases filtradas
-                 basesExactitudPct = [];
+                // Procesar datos para el gráfico de barras
+                basesLabels = [];
+                basesExactitudPct = [];
 
                 Object.keys(datosBases).forEach(b => {
                     basesLabels.push(b);
                     let exactitud = ((datosBases[b].ok / datosBases[b].totales) * 100).toFixed(1);
                     basesExactitudPct.push(exactitud);
+                }); // <--- ESTO FALTABA: cerrar el forEach de datosBases
 
-                // ... al final de procesarDashboard, antes del catch:
-                basesLabels = [];
-                basesExactitudPct = [];
+                // Preparar datos para el gráfico de evolución (meses)
+                let labelsMeses = Object.keys(desviosPorMes).sort();
+                let valoresMeses = labelsMeses.map(m => desviosPorMes[m]);
 
-                // AGREGÁ ESTO:
-                desviosPorMes = {};
-                // ...
+                // Llamada a la función unificada
+                generarGraficos(labelsMeses, valoresMeses, basesLabels, basesExactitudPct, discPositivas, discNegativas);
 
-                    console.log("Datos para gráficos:", {
-    meses: labelsMeses,
-    valores: valoresMeses,
-    basesX: basesLabels,
-    basesY: basesExactitudPct
-});
+                document.getElementById('loading-screen').style.display = 'none';
+                document.getElementById('dashboard-view').style.display = 'block';
+        
 generarGraficos(labelsMeses, valoresMeses, basesLabels, basesExactitudPct, discPositivas, discNegativas);
                 } // Este cierra el try
             } catch (err) {
