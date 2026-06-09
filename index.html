@@ -157,7 +157,7 @@
     discNegativas = 0;
 
     try {
-        const response = await fetch(URL_DATOS);
+        const response = await fetch(URL_DIRECTA);
         const data = await response.json();
         const filas = data.feed.entry;
 
