@@ -142,109 +142,119 @@
 
         let chartBasesObj, chartUbi, chartDonaObj;
 
-        async function procesarDashboard() {
-    // 1. Reset de variables al inicio
-    total = 0;
-    correctasCount = 0;
-    incorrectasCount = 0;
-    totalPerdidasEvitadas = 0;
-    totalValorDiferencias = 0;
-    tablaHtml = "";
-    datosBases = {};
-    desviosPorMes = {};
-    desviosPorUbicacion = {};
-    discPositivas = 0;
-    discNegativas = 0;
+      async function procesarDashboard() {
+    // Reset de variables
+    total = 0; correctasCount = 0; incorrectasCount = 0;
+    totalPerdidasEvitadas = 0; totalValorDiferencias = 0;
+    tablaHtml = ""; datosBases = {}; desviosPorMes = {};
+    desviosPorUbicacion = {}; discPositivas = 0; discNegativas = 0;
 
     try {
-        const response = await fetch(URL_DIRECTA);
-        const data = await response.json();
-        const filas = data.feed.entry;
-
-// --- DENTRO DEL FOREACH ---
-filas.forEach(f => {
-    const c = f.c;
-    if (!c || !c[11]) return;
-
-    total++;
-
-    let sku = c[1] ? c[1].v : '-';
-    let description = c[2] ? c[2].v : '-';
-    let location = c[3] ? c[3].v : 'No Asignada';
-    let theoretical = c[4] ? Number(c[4].v || 0) : 0;
-    let physical = c[5] ? Number(c[5].v || 0) : 0;
-    let status = c[6] ? c[6].v : '';
-    let base = c[9] ? c[9].v : '';
-    let difference = c[10] ? Number(c[10].v) : 0;
-    let fechaRaw = c[11] ? c[11].f : '';
-    let tipoDif = c[12] ? c[12].v : '';
-
-    // LÓGICA DE PRECIOS Y CÁLCULO
-    let costoUnitario = diccionarioPrecios[`${base}-${sku}`] || 0;
-    let valorAbsoluto = Math.abs(difference) * costoUnitario;
-
-    if (status === "DISCREPANCY") {
-        totalValorDiferencias += valorAbsoluto;
-        if (difference < 0) {
-            totalPerdidasEvitadas += valorAbsoluto;
-        }
-    }
-
-    // Lógica para capturar meses
-    if (fechaRaw) {
-        let partes = fechaRaw.split("/");
-        if (partes.length >= 3) {
-            let mesAno = `${partes[1]}/${partes[2]}`;
-            desviosPorMes[mesAno] = (desviosPorMes[mesAno] || 0) + 1;
-        }
-    }
-
-    // --- VALIDACIÓN ESTRICTA DE BASE ---
-    let baseValida = base && base.toString().trim() !== "" && base.toString().toLowerCase() !== "sin base";
-    if (baseValida) {
-        if (!datosBases[base]) {
-            datosBases[base] = { totales: 0, ok: 0 };
-        }
-        datosBases[base].totales++;
-    }
-
-    if (status === "OK") {
-        correctasCount++;
-        if (baseValida) datosBases[base].ok++;
-    } else if (status === "DISCREPANCY") {
-        incorrectasCount++;
-        if (tipoDif === "POSITIVA") discPositivas++;
-        else if (tipoDif === "NEGATIVA") discNegativas++;
+        const response = await fetch(URL_DIRECTA);  // ← FIX 1: era URL_DATOS
+        const text = await response.text();          // ← FIX 2: leer como texto primero
         
-        desviosPorUbicacion[location] = (desviosPorUbicacion[location] || 0) + 1;
-        let badgeClass = difference < 0 ? 'bg-neg' : 'bg-pos';
-        let signo = difference > 0 ? '+' : '';
+        // Google devuelve JSONP: /*O_o*/ google.visualization.Query.setResponse({...});
+        // Hay que extraer solo el JSON del interior
+        const jsonString = text.match(/google\.visualization\.Query\.setResponse\(([\s\S]*)\)/)[1];
+        const data = JSON.parse(jsonString);
+        
+        const filas = data.table.rows;  // ← FIX 3: estructura correcta del objeto gviz
 
-        tablaHtml += `<tr><td>${fechaRaw}</td><td><strong>${base || '-'}</strong></td><td>${sku}</td><td>${description}</td><td>${location}</td><td>${theoretical}</td><td>${physical}</td><td><span class="badge-table ${badgeClass}">${signo}${difference}</span></td></tr>`;
-    }
-}); // <--- AQUÍ SE CIERRA EL FOREACH
+        // Declaración de variables de acumulación
+        let labelsMeses = [];
+        let valoresMeses = [];
+        let basesLabels = [];
+        let basesExactitudPct = [];
 
-        let pctCorrectas = total > 0 ? ((correctasCount / total) * 100).toFixed(1) : 0;
+        filas.forEach(f => {
+            const c = f.c;
+            if (!c || !c[11]) return;
+
+            total++;
+
+            let sku         = c[1]  ? c[1].v  : '-';
+            let description = c[2]  ? c[2].v  : '-';
+            let location    = c[3]  ? c[3].v  : 'No Asignada';
+            let theoretical = c[4]  ? Number(c[4].v  || 0) : 0;
+            let physical    = c[5]  ? Number(c[5].v  || 0) : 0;
+            let status      = c[6]  ? c[6].v  : '';
+            let base        = c[9]  ? c[9].v  : '';
+            let difference  = c[10] ? Number(c[10].v) : 0;
+            let fechaRaw    = c[11] ? c[11].f  : '';
+            let tipoDif     = c[12] ? c[12].v  : '';
+
+            let costoUnitario = diccionarioPrecios[`${base}-${sku}`] || 0;
+            let valorAbsoluto = Math.abs(difference) * costoUnitario;
+
+            if (status === "DISCREPANCY") {
+                totalValorDiferencias += valorAbsoluto;
+                if (difference < 0) totalPerdidasEvitadas += valorAbsoluto;
+            }
+
+            if (fechaRaw) {
+                let partes = fechaRaw.split("/");
+                if (partes.length >= 3) {
+                    let mesAno = `${partes[1]}/${partes[2]}`;
+                    desviosPorMes[mesAno] = (desviosPorMes[mesAno] || 0) + 1;
+                }
+            }
+
+            let baseValida = base && base.toString().trim() !== "" && base.toString().toLowerCase() !== "sin base";
+            if (baseValida) {
+                if (!datosBases[base]) datosBases[base] = { totales: 0, ok: 0 };
+                datosBases[base].totales++;
+            }
+
+            if (status === "OK") {
+                correctasCount++;
+                if (baseValida) datosBases[base].ok++;
+            } else if (status === "DISCREPANCY") {
+                incorrectasCount++;
+                if (tipoDif === "POSITIVA") discPositivas++;
+                else if (tipoDif === "NEGATIVA") discNegativas++;
+
+                desviosPorUbicacion[location] = (desviosPorUbicacion[location] || 0) + 1;
+                let badgeClass = difference < 0 ? 'bg-neg' : 'bg-pos';
+                let signo = difference > 0 ? '+' : '';
+                tablaHtml += `<tr>
+                    <td>${fechaRaw}</td><td><strong>${base || '-'}</strong></td>
+                    <td>${sku}</td><td>${description}</td><td>${location}</td>
+                    <td>${theoretical}</td><td>${physical}</td>
+                    <td><span class="badge-table ${badgeClass}">${signo}${difference}</span></td>
+                </tr>`;
+            }
+        });
+
+        // Construir arrays para los gráficos a partir de los objetos acumulados
+        labelsMeses      = Object.keys(desviosPorMes);
+        valoresMeses     = Object.values(desviosPorMes);
+        basesLabels      = Object.keys(datosBases);
+        basesExactitudPct = basesLabels.map(b =>
+            datosBases[b].totales > 0
+                ? ((datosBases[b].ok / datosBases[b].totales) * 100).toFixed(1)
+                : 0
+        );
+
+        let pctCorrectas   = total > 0 ? ((correctasCount   / total) * 100).toFixed(1) : 0;
         let pctIncorrectas = total > 0 ? ((incorrectasCount / total) * 100).toFixed(1) : 0;
 
-        document.getElementById('kpi-total').innerText = total;
-        document.getElementById('kpi-correctas').innerText = pctCorrectas + '%';
-        document.getElementById('kpi-incorrectas').innerText = pctIncorrectas + '%';
-        document.getElementById('kpi-perdidas-evitadas').innerText = '$' + totalPerdidasEvitadas.toLocaleString('es-AR', {minimumFractionDigits: 2});
+        document.getElementById('kpi-total').innerText        = total;
+        document.getElementById('kpi-correctas').innerText    = pctCorrectas + '%';
+        document.getElementById('kpi-incorrectas').innerText  = pctIncorrectas + '%';
+        document.getElementById('kpi-perdidas-evitadas').innerText       = '$' + totalPerdidasEvitadas.toLocaleString('es-AR', {minimumFractionDigits: 2});
         document.getElementById('kpi-valor-total-diferencias').innerText = '$' + totalValorDiferencias.toLocaleString('es-AR', {minimumFractionDigits: 2});
         document.getElementById('tabla-desvios').innerHTML = tablaHtml || '<tr><td colspan="8" style="text-align:center;">No hay datos.</td></tr>';
 
-        // 3. Gráficos
-        generarGraficos(labelsMeses, valoresMeses, basesLabels, basesExactitudPct, discPositivas, discNegativas); // (tus argumentos)
+        generarGraficos(labelsMeses, valoresMeses, basesLabels, basesExactitudPct, discPositivas, discNegativas);
 
         document.getElementById('loading-screen').style.display = 'none';
         document.getElementById('dashboard-view').style.display = 'block';
 
     } catch (err) {
         console.error("Error en procesarDashboard:", err);
-        document.getElementById('loading-screen').innerHTML = `<div style="color:red;">Error al cargar datos.</div>`;
-    } 
-} // <--- Esta es la llave final que cierra TODO
+        document.getElementById('loading-screen').innerHTML = `<div style="color:red;">Error al cargar datos: ${err.message}</div>`;
+    }
+}
 
         function generarGraficos(meses, valoresMeses, basesX, exactitudY, positivas, negativas) { // <-- Agregué la llave de apertura
             
