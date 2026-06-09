@@ -240,7 +240,7 @@ filas.forEach(f => {
         document.getElementById('loading-screen').style.display = 'none';
         document.getElementById('dashboard-view').style.display = 'block';
 
-      catch (err) {
+    } catch (err) {
         console.error("Error en procesarDashboard:", err);
         document.getElementById('loading-screen').innerHTML = `<div style="color:red;">Error al cargar datos.</div>`;
     } 
