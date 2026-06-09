@@ -224,7 +224,7 @@ filas.forEach(f => {
     }
 }); // <--- AQUÍ SE CIERRA EL FOREACH
 
-               let pctCorrectas = total > 0 ? ((correctasCount / total) * 100).toFixed(1) : 0;
+        let pctCorrectas = total > 0 ? ((correctasCount / total) * 100).toFixed(1) : 0;
         let pctIncorrectas = total > 0 ? ((incorrectasCount / total) * 100).toFixed(1) : 0;
 
         document.getElementById('kpi-total').innerText = total;
@@ -240,7 +240,7 @@ filas.forEach(f => {
         document.getElementById('loading-screen').style.display = 'none';
         document.getElementById('dashboard-view').style.display = 'block';
 
-    } catch (err) {
+      catch (err) {
         console.error("Error en procesarDashboard:", err);
         document.getElementById('loading-screen').innerHTML = `<div style="color:red;">Error al cargar datos.</div>`;
     } 
