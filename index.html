@@ -235,7 +235,7 @@ filas.forEach(f => {
         document.getElementById('tabla-desvios').innerHTML = tablaHtml || '<tr><td colspan="8" style="text-align:center;">No hay datos.</td></tr>';
 
         // 3. Gráficos
-        generarGraficos(...); // (tus argumentos)
+        generarGraficos(labelsMeses, valoresMeses, basesLabels, basesExactitudPct, discPositivas, discNegativas); // (tus argumentos)
 
         document.getElementById('loading-screen').style.display = 'none';
         document.getElementById('dashboard-view').style.display = 'block';
