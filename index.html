@@ -127,11 +127,12 @@
                                 <th>Fecha</th>
                                 <th>Base</th>
                                 <th>SKU</th>
-                                <th>Descripción</th>
                                 <th>Ubicación</th>
                                 <th>Stock Teórico</th>
                                 <th>Conteo Físico</th>
                                 <th>Diferencia Real</th>
+                                <th>Valor Unitario</th>
+                                <th>Valor Diferencia</th>
                             </tr>
                         </thead>
                         <tbody id="tabla-desvios"></tbody>
@@ -179,7 +180,6 @@
                     total++;
 
                     let sku         = c[1]  ? c[1].v  : '-';
-                    let description = c[2]  ? c[2].v  : '-';
                     let location    = c[3]  ? c[3].v  : 'No Asignada';
                     let theoretical = c[4]  ? Number(c[4].v  || 0) : 0;
                     let physical    = c[5]  ? Number(c[5].v  || 0) : 0;
@@ -222,17 +222,22 @@
                         else if (tipoDif === "NEGATIVA") discNegativas++;
 
                         desviosPorUbicacion[location] = (desviosPorUbicacion[location] || 0) + 1;
+
                         let badgeClass = difference < 0 ? 'bg-neg' : 'bg-pos';
                         let signo = difference > 0 ? '+' : '';
+                        let valorDiferencia = difference * costoUnitario;
+                        let signoVal = valorDiferencia > 0 ? '+' : '';
+
                         tablaHtml += `<tr>
                             <td>${fechaRaw}</td>
                             <td><strong>${base || '-'}</strong></td>
                             <td>${sku}</td>
-                            <td>${description}</td>
                             <td>${location}</td>
                             <td>${theoretical}</td>
                             <td>${physical}</td>
                             <td><span class="badge-table ${badgeClass}">${signo}${difference}</span></td>
+                            <td>$${costoUnitario.toLocaleString('es-AR', {minimumFractionDigits: 2})}</td>
+                            <td><span class="badge-table ${badgeClass}">${signoVal}$${Math.abs(valorDiferencia).toLocaleString('es-AR', {minimumFractionDigits: 2})}</span></td>
                         </tr>`;
                     }
                 });
@@ -246,8 +251,8 @@
                         : 0
                 );
 
-                let pctCorrectas   = total > 0 ? ((correctasCount   / total) * 100).toFixed(1) : 0;
-                let pctIncorrectas = total > 0 ? ((incorrectasCount / total) * 100).toFixed(1) : 0;
+                let pctCorrectas     = total > 0 ? ((correctasCount   / total) * 100).toFixed(1) : 0;
+                let pctIncorrectas   = total > 0 ? ((incorrectasCount / total) * 100).toFixed(1) : 0;
                 let totalPositivoVal = Math.max(0, totalValorDiferencias - totalPerdidasEvitadas);
 
                 document.getElementById('kpi-total').innerText       = total;
@@ -256,7 +261,7 @@
                 document.getElementById('kpi-total-val').innerText   = '$' + totalValorDiferencias.toLocaleString('es-AR', {minimumFractionDigits: 2});
                 document.getElementById('kpi-neg-val').innerText     = '$' + totalPerdidasEvitadas.toLocaleString('es-AR', {minimumFractionDigits: 2});
                 document.getElementById('kpi-pos-val').innerText     = '$' + totalPositivoVal.toLocaleString('es-AR', {minimumFractionDigits: 2});
-                document.getElementById('tabla-desvios').innerHTML   = tablaHtml || '<tr><td colspan="8" style="text-align:center;">No hay datos.</td></tr>';
+                document.getElementById('tabla-desvios').innerHTML   = tablaHtml || '<tr><td colspan="9" style="text-align:center;">No hay datos.</td></tr>';
 
                 generarGraficos(labelsMeses, valoresMeses, basesLabels, basesExactitudPct, discPositivas, discNegativas);
 
