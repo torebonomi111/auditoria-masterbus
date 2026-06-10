@@ -95,33 +95,31 @@
     </div>
     </div>
 
-<div class="row" style="display: flex; flex-wrap: wrap;">
-    
-    <div class="col-md-6" style="flex: 0 0 50%; max-width: 50%;">
-        <div class="card-chart">
-            <h2><i class="fa-solid fa-chart-pie"></i> Composición de Discrepancias Detectadas</h2>
-            <div class="canvas-container"><canvas id="chartDonaDiscrepancias"></canvas></div>
+<div style="display: flex; gap: 20px; margin-bottom: 25px;">
+
+    <div class="card-chart" style="flex: 1;">
+        <h2><i class="fa-solid fa-chart-pie"></i> COMPOSICIÓN DE DISCREPANCIAS DETECTADAS</h2>
+        <div class="canvas-container" style="height: 250px;"><canvas id="chartDonaDiscrepancias"></canvas></div>
+    </div>
+
+    <div class="card-chart" style="flex: 1;">
+        <h2>RESUMEN DE VALORIZACIONES</h2>
+        
+        <div style="margin-bottom: 15px;">
+            <div style="color: #666; font-size: 0.9em;">Valorización Total</div>
+            <div id="kpi-total-val" style="font-size: 1.6em; font-weight: bold; color: #333;">$0.00</div>
+        </div>
+
+        <div style="margin-bottom: 15px; border-top: 1px solid #eee; padding-top: 10px;">
+            <div style="color: #d9534f; font-size: 0.9em;">Valorizaciones Negativas (Pérdidas)</div>
+            <div id="kpi-neg-val" style="font-size: 1.6em; font-weight: bold; color: #d9534f;">$0.00</div>
+        </div>
+
+        <div style="border-top: 1px solid #eee; padding-top: 10px;">
+            <div style="color: #5cb85c; font-size: 0.9em;">Valorizaciones Positivas (Sobrantes)</div>
+            <div id="kpi-pos-val" style="font-size: 1.6em; font-weight: bold; color: #5cb85c;">$0.00</div>
         </div>
     </div>
-
-<div class="card-chart" style="padding: 20px; background: white; border: 1px solid #ddd; height: 100%;">
-    <h2 style="color: #333; margin-bottom: 20px;">Resumen de Valorizaciones</h2>
-    
-    <div style="margin-bottom: 15px;">
-        <div style="color: #666; font-size: 0.9em;">Valorización Total</div>
-        <div id="kpi-total-val" style="font-size: 1.6em; font-weight: bold; color: #333;">$0.00</div>
-    </div>
-
-    <div style="margin-bottom: 15px; border-top: 1px solid #eee; padding-top: 10px;">
-        <div style="color: #d9534f; font-size: 0.9em;">Valorizaciones Negativas (Pérdidas)</div>
-        <div id="kpi-neg-val" style="font-size: 1.6em; font-weight: bold; color: #d9534f;">$0.00</div>
-    </div>
-
-    <div style="border-top: 1px solid #eee; padding-top: 10px;">
-        <div style="color: #5cb85c; font-size: 0.9em;">Valorizaciones Positivas (Sobrantes)</div>
-        <div id="kpi-pos-val" style="font-size: 1.6em; font-weight: bold; color: #5cb85c;">$0.00</div>
-    </div>
-</div>
 
 </div>
             
