@@ -33,6 +33,11 @@
         .kpi-data h3 { margin: 0 0 5px 0; font-size: 12px; color: var(--text-muted); text-transform: uppercase; }
         .kpi-data .metric { font-size: 28px; font-weight: bold; color: var(--dark-bg); }
         .kpi-card i { font-size: 30px; color: #dee2e6; }
+
+        .filtro-base-banner { display: none; align-items: center; justify-content: space-between; background: var(--dark-bg); color: white; padding: 10px 18px; border-radius: 4px; margin-bottom: 20px; font-size: 13px; }
+        .filtro-base-banner span { font-weight: 700; color: var(--masterbus-red); margin-left: 6px; }
+        .filtro-base-banner button { background: none; border: 1px solid #555; color: #ccc; padding: 4px 12px; border-radius: 3px; cursor: pointer; font-size: 12px; }
+        .filtro-base-banner button:hover { background: #333; }
         
         .grid-dashboard { display: grid; grid-template-columns: repeat(auto-fit, minmax(450px, 1fr)); gap: 25px; margin-bottom: 25px; }
         .grid-full-width { grid-column: 1 / -1; }
@@ -52,7 +57,6 @@
         .bg-pos { background-color: #e6f4ea; color: #137333; }
         #loading-screen { text-align: center; padding: 100px; font-size: 16px; color: var(--text-muted); }
 
-        /* Filtros */
         .filtros-bar { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; margin-bottom: 15px; padding: 15px; background: var(--light-gray); border-radius: 4px; border: 1px solid var(--border); }
         .filtro-grupo { display: flex; flex-direction: column; gap: 4px; }
         .filtro-grupo label { font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; }
@@ -66,6 +70,8 @@
         .btn-limpiar { background: white; color: var(--text-muted); border: 1px solid var(--border); }
         .btn-limpiar:hover { background: var(--light-gray); }
         .contador-tabla { font-size: 12px; color: var(--text-muted); margin-bottom: 5px; }
+
+        #chartBases { cursor: pointer; }
     </style>
 </head>
 <body>
@@ -82,9 +88,16 @@
         </div>
 
         <div id="dashboard-view" style="display: none;">
+
+            <!-- Banner base seleccionada -->
+            <div class="filtro-base-banner" id="banner-base">
+                <div><i class="fa-solid fa-location-dot"></i> Filtrando por base: <span id="banner-base-nombre"></span></div>
+                <button onclick="limpiarFiltroBase()"><i class="fa-solid fa-xmark"></i> Ver todas las bases</button>
+            </div>
+
             <div class="kpi-row">
                 <div class="kpi-card">
-                    <div class="kpi-data"><h3>Ítems Auditados</h3><div class="metric" id="kpi-total">0</div></div>
+                    <div class="kpi-data"><h3 id="label-kpi-total">Ítems Auditados</h3><div class="metric" id="kpi-total">0</div></div>
                     <i class="fa-solid fa-boxes-stacked"></i>
                 </div>
                 <div class="kpi-card kpi-ok">
@@ -104,7 +117,7 @@
                         <div class="canvas-container" style="height: 250px;"><canvas id="chartEvolucion"></canvas></div>
                     </div>
                     <div class="card-chart" style="flex: 1;">
-                        <h2><i class="fa-solid fa-chart-bar"></i> EXACTITUD POR BASE</h2>
+                        <h2><i class="fa-solid fa-chart-bar"></i> EXACTITUD POR BASE <small id="label-bases-hint" style="font-size:10px; color:var(--text-muted); font-weight:400; margin-left:4px;">(click para filtrar)</small></h2>
                         <div class="canvas-container" style="height: 250px;"><canvas id="chartBases"></canvas></div>
                     </div>
                 </div>
@@ -136,7 +149,6 @@
             <div class="card-chart grid-full-width">
                 <h2><i class="fa-solid fa-list-check"></i> Monitor Analítico de Desvíos Detectados</h2>
 
-                <!-- FILTROS -->
                 <div class="filtros-bar">
                     <div class="filtro-grupo">
                         <label>Fecha desde</label>
@@ -202,27 +214,22 @@
         const URL_DIRECTA = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&gid=0`;
 
         let chartBasesObj, chartEvoObj, chartDonaObj;
-        let total, correctasCount, incorrectasCount;
-        let totalPerdidasEvitadas, totalValorDiferencias;
-        let datosBases, desviosPorMes, desviosPorUbicacion;
-        let discPositivas, discNegativas;
         let diccionarioPrecios = {};
 
-        // Array global con todos los desvíos — base para filtrar
-        let todosLosDesvios = [];
+        // Datos crudos completos — nunca se modifican después de cargar
+        let todasLasFilas = [];       // todas las filas (OK + DISCREPANCY)
+        let todosLosDesvios = [];     // solo DISCREPANCY
+
+        // Base actualmente seleccionada (null = todas)
+        let baseSeleccionada = null;
 
         async function procesarDashboard() {
-
-            total = 0; correctasCount = 0; incorrectasCount = 0;
-            totalPerdidasEvitadas = 0; totalValorDiferencias = 0;
+            todasLasFilas = [];
             todosLosDesvios = [];
-            datosBases = {}; desviosPorMes = {};
-            desviosPorUbicacion = {}; discPositivas = 0; discNegativas = 0;
 
             try {
                 const response = await fetch(URL_DIRECTA);
                 const text = await response.text();
-
                 const jsonString = text.substring(text.indexOf('(') + 1, text.lastIndexOf(')'));
                 const data = JSON.parse(jsonString);
                 const filas = data.table.rows;
@@ -230,8 +237,6 @@
                 filas.forEach(f => {
                     const c = f.c;
                     if (!c || !c[6]) return;
-
-                    total++;
 
                     let sku         = c[1]  ? c[1].v  : '-';
                     let location    = c[3]  ? c[3].v  : 'No Asignada';
@@ -243,72 +248,24 @@
                     let fechaRaw    = c[11] ? c[11].f  : '';
                     let tipoDif     = c[12] ? c[12].v  : '';
 
-                    let costoUnitario = diccionarioPrecios[`${base}-${sku}`] || 0;
-                    let valorAbsoluto = Math.abs(difference) * costoUnitario;
+                    let costoUnitario   = diccionarioPrecios[`${base}-${sku}`] || 0;
                     let valorDiferencia = difference * costoUnitario;
+                    let valorAbsoluto   = Math.abs(valorDiferencia);
 
-                    // Parsear fecha para poder filtrar (formato dd/mm/yyyy)
                     let fechaObj = null;
                     if (fechaRaw) {
-                        let partes = fechaRaw.split("/");
-                        if (partes.length === 3) {
-                            fechaObj = new Date(`${partes[2]}-${partes[1].padStart(2,'0')}-${partes[0].padStart(2,'0')}`);
-                            let mesAno = `${partes[1]}/${partes[2]}`;
-                            desviosPorMes[mesAno] = (desviosPorMes[mesAno] || 0) + 1;
-                        }
+                        let p = fechaRaw.split("/");
+                        if (p.length === 3) fechaObj = new Date(`${p[2]}-${p[1].padStart(2,'0')}-${p[0].padStart(2,'0')}`);
                     }
 
                     let baseValida = base && base.toString().trim() !== "" && base.toString().toLowerCase() !== "sin base";
-                    if (baseValida) {
-                        if (!datosBases[base]) datosBases[base] = { totales: 0, ok: 0 };
-                        datosBases[base].totales++;
-                    }
 
-                    if (status === "OK") {
-                        correctasCount++;
-                        if (baseValida) datosBases[base].ok++;
-                    } else if (status === "DISCREPANCY") {
-                        incorrectasCount++;
-                        totalValorDiferencias += valorAbsoluto;
-                        if (difference < 0) totalPerdidasEvitadas += valorAbsoluto;
-                        if (tipoDif === "POSITIVA") discPositivas++;
-                        else if (tipoDif === "NEGATIVA") discNegativas++;
-
-                        desviosPorUbicacion[location] = (desviosPorUbicacion[location] || 0) + 1;
-
-                        // Guardar el objeto completo para filtrar después
-                        todosLosDesvios.push({
-                            fechaRaw, fechaObj, base, sku, location,
-                            theoretical, physical, difference,
-                            costoUnitario, valorDiferencia, valorAbsoluto
-                        });
-                    }
+                    const fila = { sku, location, theoretical, physical, status, base, baseValida, difference, fechaRaw, fechaObj, tipoDif, costoUnitario, valorDiferencia, valorAbsoluto };
+                    todasLasFilas.push(fila);
+                    if (status === "DISCREPANCY") todosLosDesvios.push(fila);
                 });
 
-                const labelsMeses       = Object.keys(desviosPorMes);
-                const valoresMeses      = Object.values(desviosPorMes);
-                const basesLabels       = Object.keys(datosBases);
-                const basesExactitudPct = basesLabels.map(b =>
-                    datosBases[b].totales > 0
-                        ? ((datosBases[b].ok / datosBases[b].totales) * 100).toFixed(1)
-                        : 0
-                );
-
-                let pctCorrectas     = total > 0 ? ((correctasCount   / total) * 100).toFixed(1) : 0;
-                let pctIncorrectas   = total > 0 ? ((incorrectasCount / total) * 100).toFixed(1) : 0;
-                let totalPositivoVal = Math.max(0, totalValorDiferencias - totalPerdidasEvitadas);
-
-                document.getElementById('kpi-total').innerText       = total;
-                document.getElementById('kpi-correctas').innerText   = pctCorrectas + '%';
-                document.getElementById('kpi-incorrectas').innerText = pctIncorrectas + '%';
-                document.getElementById('kpi-total-val').innerText   = '$' + totalValorDiferencias.toLocaleString('en-US', {minimumFractionDigits: 2});
-                document.getElementById('kpi-neg-val').innerText     = '$' + totalPerdidasEvitadas.toLocaleString('en-US', {minimumFractionDigits: 2});
-                document.getElementById('kpi-pos-val').innerText     = '$' + totalPositivoVal.toLocaleString('en-US', {minimumFractionDigits: 2});
-
-                generarGraficos(labelsMeses, valoresMeses, basesLabels, basesExactitudPct, discPositivas, discNegativas);
-
-                // Mostrar top 50 por defecto
-                renderizarTabla(todosLosDesvios, true);
+                actualizarVista(null);
 
                 document.getElementById('loading-screen').style.display = 'none';
                 document.getElementById('dashboard-view').style.display = 'block';
@@ -319,14 +276,81 @@
             }
         }
 
-        // Renderiza la tabla dado un array de desvíos
-        // Si top50 = true, muestra solo los 50 con mayor valorAbsoluto
+        // Función central: recalcula todo en función de la base (null = todas)
+        function actualizarVista(base) {
+            baseSeleccionada = base;
+
+            const filasFiltradas   = base ? todasLasFilas.filter(f => f.base === base)   : todasLasFilas;
+            const desviosFiltrados = base ? todosLosDesvios.filter(f => f.base === base) : todosLosDesvios;
+
+            // KPIs
+            let total         = filasFiltradas.length;
+            let correctas     = filasFiltradas.filter(f => f.status === "OK").length;
+            let incorrectas   = filasFiltradas.filter(f => f.status === "DISCREPANCY").length;
+            let pctCorrectas  = total > 0 ? ((correctas  / total) * 100).toFixed(1) : 0;
+            let pctIncorr     = total > 0 ? ((incorrectas / total) * 100).toFixed(1) : 0;
+
+            let totalVal  = desviosFiltrados.reduce((s, d) => s + d.valorAbsoluto, 0);
+            let negVal    = desviosFiltrados.filter(d => d.difference < 0).reduce((s, d) => s + d.valorAbsoluto, 0);
+            let posVal    = Math.max(0, totalVal - negVal);
+            let discPos   = desviosFiltrados.filter(d => d.tipoDif === "POSITIVA").length;
+            let discNeg   = desviosFiltrados.filter(d => d.tipoDif === "NEGATIVA").length;
+
+            document.getElementById('kpi-total').innerText       = total;
+            document.getElementById('kpi-correctas').innerText   = pctCorrectas + '%';
+            document.getElementById('kpi-incorrectas').innerText = pctIncorr + '%';
+            document.getElementById('kpi-total-val').innerText   = '$' + totalVal.toLocaleString('en-US', {minimumFractionDigits: 2});
+            document.getElementById('kpi-neg-val').innerText     = '$' + negVal.toLocaleString('en-US', {minimumFractionDigits: 2});
+            document.getElementById('kpi-pos-val').innerText     = '$' + posVal.toLocaleString('en-US', {minimumFractionDigits: 2});
+
+            // Banner
+            const banner = document.getElementById('banner-base');
+            if (base) {
+                document.getElementById('banner-base-nombre').innerText = base;
+                banner.style.display = 'flex';
+            } else {
+                banner.style.display = 'none';
+            }
+
+            // Evolución mensual — solo con desviosFiltrados
+            let desviosPorMes = {};
+            desviosFiltrados.forEach(d => {
+                if (d.fechaRaw) {
+                    let p = d.fechaRaw.split("/");
+                    if (p.length === 3) {
+                        let mesAno = `${p[1]}/${p[2]}`;
+                        desviosPorMes[mesAno] = (desviosPorMes[mesAno] || 0) + 1;
+                    }
+                }
+            });
+            let labelsMeses  = Object.keys(desviosPorMes);
+            let valoresMeses = Object.values(desviosPorMes);
+
+            // Exactitud por base — siempre con TODAS las filas (para mantener referencia)
+            let datosBases = {};
+            todasLasFilas.forEach(f => {
+                if (!f.baseValida) return;
+                if (!datosBases[f.base]) datosBases[f.base] = { totales: 0, ok: 0 };
+                datosBases[f.base].totales++;
+                if (f.status === "OK") datosBases[f.base].ok++;
+            });
+            let basesLabels       = Object.keys(datosBases);
+            let basesExactitudPct = basesLabels.map(b =>
+                datosBases[b].totales > 0 ? ((datosBases[b].ok / datosBases[b].totales) * 100).toFixed(1) : 0
+            );
+            // Resaltar barra seleccionada
+            let basesColors = basesLabels.map(b =>
+                base && b === base ? '#D70000' : 'rgba(21, 21, 21, 1)'
+            );
+
+            generarGraficos(labelsMeses, valoresMeses, basesLabels, basesExactitudPct, basesColors, discPos, discNeg);
+
+            // Tabla: top 50 de desviosFiltrados
+            renderizarTabla(desviosFiltrados, true);
+        }
+
         function renderizarTabla(desvios, top50 = false) {
-            let datos = [...desvios];
-
-            // Ordenar siempre por valor absoluto descendente
-            datos.sort((a, b) => b.valorAbsoluto - a.valorAbsoluto);
-
+            let datos = [...desvios].sort((a, b) => b.valorAbsoluto - a.valorAbsoluto);
             let modoTexto = '';
             if (top50) {
                 datos = datos.slice(0, 50);
@@ -334,7 +358,6 @@
             } else {
                 modoTexto = `Mostrando <strong>${datos.length}</strong> desvíos según los filtros aplicados.`;
             }
-
             document.getElementById('contador-tabla').innerHTML = modoTexto;
 
             if (datos.length === 0) {
@@ -347,6 +370,7 @@
                 let badgeClass = d.difference < 0 ? 'bg-neg' : 'bg-pos';
                 let signo      = d.difference > 0 ? '+' : '';
                 let signoVal   = d.valorDiferencia > 0 ? '+' : '';
+                let diffDisplay = parseFloat(d.difference.toFixed(2));
                 html += `<tr>
                     <td>${d.fechaRaw}</td>
                     <td><strong>${d.base || '-'}</strong></td>
@@ -354,7 +378,7 @@
                     <td>${d.location}</td>
                     <td>${d.theoretical}</td>
                     <td>${d.physical}</td>
-                    <td><span class="badge-table ${badgeClass}">${signo}${d.difference}</span></td>
+                    <td><span class="badge-table ${badgeClass}">${signo}${diffDisplay}</span></td>
                     <td>$${d.costoUnitario.toLocaleString('es-AR', {minimumFractionDigits: 2})}</td>
                     <td><span class="badge-table ${badgeClass}">${signoVal}$${Math.abs(d.valorDiferencia).toLocaleString('es-AR', {minimumFractionDigits: 2})}</span></td>
                 </tr>`;
@@ -369,20 +393,13 @@
             const diffOp     = document.getElementById('filtro-diff-op').value;
             const diffVal    = parseFloat(document.getElementById('filtro-diff-val').value);
 
-            let resultado = todosLosDesvios.filter(d => {
+            // Partir de desvíos ya filtrados por base si hay una seleccionada
+            let fuente = baseSeleccionada ? todosLosDesvios.filter(d => d.base === baseSeleccionada) : todosLosDesvios;
 
-                // Filtro fecha desde
-                if (fechaDesde && d.fechaObj) {
-                    if (d.fechaObj < new Date(fechaDesde)) return false;
-                }
-                // Filtro fecha hasta
-                if (fechaHasta && d.fechaObj) {
-                    if (d.fechaObj > new Date(fechaHasta + 'T23:59:59')) return false;
-                }
-                // Filtro SKU
+            let resultado = fuente.filter(d => {
+                if (fechaDesde && d.fechaObj && d.fechaObj < new Date(fechaDesde)) return false;
+                if (fechaHasta && d.fechaObj && d.fechaObj > new Date(fechaHasta + 'T23:59:59')) return false;
                 if (skuFiltro && !d.sku.toString().toLowerCase().includes(skuFiltro)) return false;
-
-                // Filtro diferencia
                 if (diffOp !== 'ninguno' && !isNaN(diffVal)) {
                     if (diffOp === 'exacto'    && d.difference !== diffVal)               return false;
                     if (diffOp === 'mayor'     && d.difference <= diffVal)                return false;
@@ -390,7 +407,6 @@
                     if (diffOp === 'mayor_abs' && Math.abs(d.difference) <= diffVal)      return false;
                     if (diffOp === 'menor_abs' && Math.abs(d.difference) >= diffVal)      return false;
                 }
-
                 return true;
             });
 
@@ -403,10 +419,16 @@
             document.getElementById('filtro-sku').value = '';
             document.getElementById('filtro-diff-op').value = 'ninguno';
             document.getElementById('filtro-diff-val').value = '';
-            renderizarTabla(todosLosDesvios, true);
+            const fuente = baseSeleccionada ? todosLosDesvios.filter(d => d.base === baseSeleccionada) : todosLosDesvios;
+            renderizarTabla(fuente, true);
         }
 
-        function generarGraficos(meses, valoresMeses, basesX, exactitudY, positivas, negativas) {
+        function limpiarFiltroBase() {
+            actualizarVista(null);
+            limpiarFiltros();
+        }
+
+        function generarGraficos(meses, valoresMeses, basesX, exactitudY, basesColors, positivas, negativas) {
 
             const ctxEvo = document.getElementById('chartEvolucion').getContext('2d');
             if (chartEvoObj) chartEvoObj.destroy();
@@ -436,8 +458,7 @@
                     datasets: [{
                         label: '% Exactitud de Stock',
                         data: exactitudY,
-                        backgroundColor: 'rgba(21, 21, 21, 1)',
-                        borderColor: '#198754',
+                        backgroundColor: basesColors,
                         borderWidth: 1,
                         borderRadius: 3
                     }]
@@ -445,6 +466,17 @@
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
+                    onClick: (evt, elements) => {
+                        if (elements.length > 0) {
+                            const idx  = elements[0].index;
+                            const base = chartBasesObj.data.labels[idx];
+                            if (base === baseSeleccionada) {
+                                actualizarVista(null); // segundo click deselecciona
+                            } else {
+                                actualizarVista(base);
+                            }
+                        }
+                    },
                     scales: { y: { beginAtZero: true, max: 100, ticks: { callback: value => value + '%' } } }
                 }
             });
