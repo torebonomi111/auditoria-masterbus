@@ -258,9 +258,9 @@
                 document.getElementById('kpi-total').innerText       = total;
                 document.getElementById('kpi-correctas').innerText   = pctCorrectas + '%';
                 document.getElementById('kpi-incorrectas').innerText = pctIncorrectas + '%';
-                document.getElementById('kpi-total-val').innerText   = '$' + totalValorDiferencias.toLocaleString('es-AR', {minimumFractionDigits: 2});
-                document.getElementById('kpi-neg-val').innerText     = '$' + totalPerdidasEvitadas.toLocaleString('es-AR', {minimumFractionDigits: 2});
-                document.getElementById('kpi-pos-val').innerText     = '$' + totalPositivoVal.toLocaleString('es-AR', {minimumFractionDigits: 2});
+                document.getElementById('kpi-total-val').innerText   = '$' + totalValorDiferencias.toLocaleString('es-US', {minimumFractionDigits: 2});
+                document.getElementById('kpi-neg-val').innerText     = '$' + totalPerdidasEvitadas.toLocaleString('es-US', {minimumFractionDigits: 2});
+                document.getElementById('kpi-pos-val').innerText     = '$' + totalPositivoVal.toLocaleString('es-US', {minimumFractionDigits: 2});
                 document.getElementById('tabla-desvios').innerHTML   = tablaHtml || '<tr><td colspan="9" style="text-align:center;">No hay datos.</td></tr>';
 
                 generarGraficos(labelsMeses, valoresMeses, basesLabels, basesExactitudPct, discPositivas, discNegativas);
