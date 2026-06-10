@@ -369,6 +369,10 @@ async function cargarPrecios() {
 }
 // Reemplazamos el window.onload antiguo por este nuevo
         window.onload = async () => {
+
+            let totalValor = 0;
+
+            
     // 1. Primero cargamos los precios (el diccionario)
     await cargarPrecios();
     
