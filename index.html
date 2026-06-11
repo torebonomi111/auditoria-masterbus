@@ -89,6 +89,7 @@
 
         <div id="dashboard-view" style="display: none;">
 
+            <!-- Banner base seleccionada -->
             <div class="filtro-base-banner" id="banner-base">
                 <div><i class="fa-solid fa-location-dot"></i> Filtrando por base: <span id="banner-base-nombre"></span></div>
                 <button onclick="limpiarFiltroBase()"><i class="fa-solid fa-xmark"></i> Ver todas las bases</button>
@@ -132,15 +133,15 @@
                     <h2>RESUMEN DE VALORIZACIONES</h2>
                     <div style="margin-bottom: 15px;">
                         <div style="color: #666; font-size: 0.9em;">Valorización Total</div>
-                        <div id="kpi-total-val" style="font-size: 1.6em; font-weight: bold; color: #333;">$0,00</div>
+                        <div id="kpi-total-val" style="font-size: 1.6em; font-weight: bold; color: #333;">$0.00</div>
                     </div>
                     <div style="margin-bottom: 15px; border-top: 1px solid #eee; padding-top: 10px;">
                         <div style="color: #d9534f; font-size: 0.9em;">Valorizaciones Negativas</div>
-                        <div id="kpi-neg-val" style="font-size: 1.6em; font-weight: bold; color: #d9534f;">$0,00</div>
+                        <div id="kpi-neg-val" style="font-size: 1.6em; font-weight: bold; color: #d9534f;">$0.00</div>
                     </div>
                     <div style="border-top: 1px solid #eee; padding-top: 10px;">
                         <div style="color: #5cb85c; font-size: 0.9em;">Valorizaciones Positivas</div>
-                        <div id="kpi-pos-val" style="font-size: 1.6em; font-weight: bold; color: #5cb85c;">$0,00</div>
+                        <div id="kpi-pos-val" style="font-size: 1.6em; font-weight: bold; color: #5cb85c;">$0.00</div>
                     </div>
                 </div>
             </div>
@@ -214,44 +215,16 @@
 
         let chartBasesObj, chartEvoObj, chartDonaObj;
         let diccionarioPrecios = {};
-        let todasLasFilas  = [];
-        let todosLosDesvios = [];
+
+        // Datos crudos completos — nunca se modifican después de cargar
+        let todasLasFilas = [];       // todas las filas (OK + DISCREPANCY)
+        let todosLosDesvios = [];     // solo DISCREPANCY
+
+        // Base actualmente seleccionada (null = todas)
         let baseSeleccionada = null;
 
-        // ── Parser de precios robusto ──────────────────────────────────────────
-        function parsearPrecio(raw) {
-            let v = raw.trim();
-            if (!v) return NaN;
-
-            // Tiene punto Y coma → el último separador es el decimal
-            if (v.includes('.') && v.includes(',')) {
-                if (v.lastIndexOf('.') > v.lastIndexOf(',')) {
-                    // Formato US:  68,684.50
-                    return parseFloat(v.replace(/,/g, ''));
-                } else {
-                    // Formato AR:  68.684,50
-                    return parseFloat(v.replace(/\./g, '').replace(',', '.'));
-                }
-            }
-
-            // Solo coma
-            if (v.includes(',') && !v.includes('.')) {
-                let partes = v.split(',');
-                // Si hay exactamente 3 dígitos tras la coma → separador de miles
-                if (partes[1] && partes[1].length === 3) {
-                    return parseFloat(v.replace(',', ''));
-                } else {
-                    // decimal con coma: 68,50
-                    return parseFloat(v.replace(',', '.'));
-                }
-            }
-
-            // Solo punto o número plano → parseFloat directo
-            return parseFloat(v);
-        }
-
         async function procesarDashboard() {
-            todasLasFilas  = [];
+            todasLasFilas = [];
             todosLosDesvios = [];
 
             try {
@@ -303,23 +276,25 @@
             }
         }
 
+        // Función central: recalcula todo en función de la base (null = todas)
         function actualizarVista(base) {
             baseSeleccionada = base;
 
             const filasFiltradas   = base ? todasLasFilas.filter(f => f.base === base)   : todasLasFilas;
             const desviosFiltrados = base ? todosLosDesvios.filter(f => f.base === base) : todosLosDesvios;
 
-            let total        = filasFiltradas.length;
-            let correctas    = filasFiltradas.filter(f => f.status === "OK").length;
-            let incorrectas  = filasFiltradas.filter(f => f.status === "DISCREPANCY").length;
-            let pctCorrectas = total > 0 ? ((correctas  / total) * 100).toFixed(1) : 0;
-            let pctIncorr    = total > 0 ? ((incorrectas / total) * 100).toFixed(1) : 0;
+            // KPIs
+            let total         = filasFiltradas.length;
+            let correctas     = filasFiltradas.filter(f => f.status === "OK").length;
+            let incorrectas   = filasFiltradas.filter(f => f.status === "DISCREPANCY").length;
+            let pctCorrectas  = total > 0 ? ((correctas  / total) * 100).toFixed(1) : 0;
+            let pctIncorr     = total > 0 ? ((incorrectas / total) * 100).toFixed(1) : 0;
 
-            let totalVal = desviosFiltrados.reduce((s, d) => s + d.valorAbsoluto, 0);
-            let negVal   = desviosFiltrados.filter(d => d.difference < 0).reduce((s, d) => s + d.valorAbsoluto, 0);
-            let posVal   = Math.max(0, totalVal - negVal);
-            let discPos  = desviosFiltrados.filter(d => d.tipoDif === "POSITIVA").length;
-            let discNeg  = desviosFiltrados.filter(d => d.tipoDif === "NEGATIVA").length;
+            let totalVal  = desviosFiltrados.reduce((s, d) => s + d.valorAbsoluto, 0);
+            let negVal    = desviosFiltrados.filter(d => d.difference < 0).reduce((s, d) => s + d.valorAbsoluto, 0);
+            let posVal    = Math.max(0, totalVal - negVal);
+            let discPos   = desviosFiltrados.filter(d => d.tipoDif === "POSITIVA").length;
+            let discNeg   = desviosFiltrados.filter(d => d.tipoDif === "NEGATIVA").length;
 
             document.getElementById('kpi-total').innerText       = total;
             document.getElementById('kpi-correctas').innerText   = pctCorrectas + '%';
@@ -328,6 +303,7 @@
             document.getElementById('kpi-neg-val').innerText     = '$' + negVal.toLocaleString('es-AR', {minimumFractionDigits: 2});
             document.getElementById('kpi-pos-val').innerText     = '$' + posVal.toLocaleString('es-AR', {minimumFractionDigits: 2});
 
+            // Banner
             const banner = document.getElementById('banner-base');
             if (base) {
                 document.getElementById('banner-base-nombre').innerText = base;
@@ -336,6 +312,7 @@
                 banner.style.display = 'none';
             }
 
+            // Evolución mensual — solo con desviosFiltrados
             let desviosPorMes = {};
             desviosFiltrados.forEach(d => {
                 if (d.fechaRaw) {
@@ -349,6 +326,7 @@
             let labelsMeses  = Object.keys(desviosPorMes);
             let valoresMeses = Object.values(desviosPorMes);
 
+            // Exactitud por base — siempre con TODAS las filas (para mantener referencia)
             let datosBases = {};
             todasLasFilas.forEach(f => {
                 if (!f.baseValida) return;
@@ -360,11 +338,14 @@
             let basesExactitudPct = basesLabels.map(b =>
                 datosBases[b].totales > 0 ? ((datosBases[b].ok / datosBases[b].totales) * 100).toFixed(1) : 0
             );
+            // Resaltar barra seleccionada
             let basesColors = basesLabels.map(b =>
                 base && b === base ? '#D70000' : 'rgba(21, 21, 21, 1)'
             );
 
             generarGraficos(labelsMeses, valoresMeses, basesLabels, basesExactitudPct, basesColors, discPos, discNeg);
+
+            // Tabla: top 50 de desviosFiltrados
             renderizarTabla(desviosFiltrados, true);
         }
 
@@ -386,9 +367,9 @@
 
             let html = '';
             datos.forEach(d => {
-                let badgeClass  = d.difference < 0 ? 'bg-neg' : 'bg-pos';
-                let signo       = d.difference > 0 ? '+' : '';
-                let signoVal    = d.valorDiferencia > 0 ? '+' : '';
+                let badgeClass = d.difference < 0 ? 'bg-neg' : 'bg-pos';
+                let signo      = d.difference > 0 ? '+' : '';
+                let signoVal   = d.valorDiferencia > 0 ? '+' : '';
                 let diffDisplay = parseFloat(d.difference.toFixed(2));
                 html += `<tr>
                     <td>${d.fechaRaw}</td>
@@ -412,6 +393,7 @@
             const diffOp     = document.getElementById('filtro-diff-op').value;
             const diffVal    = parseFloat(document.getElementById('filtro-diff-val').value);
 
+            // Partir de desvíos ya filtrados por base si hay una seleccionada
             let fuente = baseSeleccionada ? todosLosDesvios.filter(d => d.base === baseSeleccionada) : todosLosDesvios;
 
             let resultado = fuente.filter(d => {
@@ -489,7 +471,7 @@
                             const idx  = elements[0].index;
                             const base = chartBasesObj.data.labels[idx];
                             if (base === baseSeleccionada) {
-                                actualizarVista(null);
+                                actualizarVista(null); // segundo click deselecciona
                             } else {
                                 actualizarVista(base);
                             }
@@ -528,7 +510,7 @@
                         const base      = columnas[1] ? columnas[1].trim() : "";
                         const sku       = columnas[2] ? columnas[2].trim() : "";
                         const precioRaw = columnas[3] ? columnas[3].trim() : "";
-                        const precio    = parsearPrecio(precioRaw);  // ← nuevo parser
+                        const precio    = parseFloat(precioRaw.replace(/[^0-9.-]+/g, ""));
                         if (base && sku && !isNaN(precio)) {
                             diccionarioPrecios[`${base}-${sku}`] = precio;
                         }
