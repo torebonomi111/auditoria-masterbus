@@ -498,46 +498,60 @@
             });
         }
 
-        async function cargarPrecios() {
-            const url = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTmsaR3HAfCf965pC3rUVkkHNByDnougE2SY5r5_j8I9dTyxRFgyfclWr7yH2-caw/pub?gid=1808497775&single=true&output=csv";
-            try {
-                const response = await fetch(url);
-                const data = await response.text();
-                const filas = data.split('\n');
-                for (let i = 2; i < filas.length; i++) {
-                    const columnas = filas[i].split(',');
-                    if (columnas.length >= 4) {
-                        const base      = columnas[1] ? columnas[1].trim() : "";
-                        const sku       = columnas[2] ? columnas[2].trim() : "";
-                        const precioRaw = columnas[3] ? columnas[3].trim() : "";
-const precio = (() => {
-    let v = precioRaw.trim();
-    // Formato AR: 68.684,00 → tiene punto antes que coma
-    if (v.includes('.') && v.includes(',') && v.lastIndexOf('.') < v.lastIndexOf(',')) {
-        return parseFloat(v.replace(/\./g, '').replace(',', '.'));
-    }
-    // Formato US: 68,684.00 → tiene coma antes que punto
-    if (v.includes('.') && v.includes(',') && v.lastIndexOf(',') < v.lastIndexOf('.')) {
-        return parseFloat(v.replace(/,/g, ''));
-    }
-    // Solo coma con exactamente 3 decimales → separador de miles: 68,684
-    if (v.includes(',') && !v.includes('.')) {
-        let partes = v.split(',');
-        if (partes[1] && partes[1].length === 3) return parseFloat(v.replace(',', ''));
-        return parseFloat(v.replace(',', '.'));
-    }
-    // Solo punto o número plano
-    return parseFloat(v.replace(/,/g, ''));
-})();                        if (base && sku && !isNaN(precio)) {
-                            diccionarioPrecios[`${base}-${sku}`] = precio;
-                        }
-                    }
+async function cargarPrecios() {
+    const url = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTmsaR3HAfCf965pC3rUVkkHNByDnougE2SY5r5_j8I9dTyxRFgyfclWr7yH2-caw/pub?gid=1808497775&single=true&output=csv";
+    try {
+        const response = await fetch(url);
+        const data = await response.text();
+        const filas = data.split('\n');
+
+        for (let i = 2; i < filas.length; i++) {
+            // Parsear CSV respetando campos entre comillas
+            const fila = filas[i];
+            if (!fila.trim()) continue;
+
+            const columnas = [];
+            let actual = '';
+            let dentroComillas = false;
+            for (let ch of fila) {
+                if (ch === '"') {
+                    dentroComillas = !dentroComillas;
+                } else if (ch === ',' && !dentroComillas) {
+                    columnas.push(actual.trim());
+                    actual = '';
+                } else {
+                    actual += ch;
                 }
-                console.log("¡Precios cargados! Cantidad de productos:", Object.keys(diccionarioPrecios).length);
-            } catch (err) {
-                console.error("Error al cargar precios:", err);
+            }
+            columnas.push(actual.trim());
+
+            if (columnas.length >= 4) {
+                const base      = columnas[1] ? columnas[1].trim() : "";
+                const sku       = columnas[2] ? columnas[2].trim() : "";
+                const precioRaw = columnas[3] ? columnas[3].trim() : "";
+
+                // Formato AR: 68.684,00
+                let v = precioRaw.replace(/"/g, '').trim();
+                let precio;
+                if (v.includes('.') && v.includes(',')) {
+                    precio = parseFloat(v.replace(/\./g, '').replace(',', '.'));
+                } else if (v.includes(',')) {
+                    precio = parseFloat(v.replace(',', '.'));
+                } else {
+                    precio = parseFloat(v);
+                }
+
+                if (base && sku && !isNaN(precio)) {
+                    diccionarioPrecios[`${base}-${sku}`] = precio;
+                }
             }
         }
+        console.log("¡Precios cargados! Cantidad de productos:", Object.keys(diccionarioPrecios).length);
+        console.log("Muestra:", Object.entries(diccionarioPrecios).slice(0, 3));
+    } catch (err) {
+        console.error("Error al cargar precios:", err);
+    }
+}
 
         window.onload = async () => {
             await cargarPrecios();
