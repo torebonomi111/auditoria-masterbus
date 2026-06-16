@@ -510,8 +510,25 @@
                         const base      = columnas[1] ? columnas[1].trim() : "";
                         const sku       = columnas[2] ? columnas[2].trim() : "";
                         const precioRaw = columnas[3] ? columnas[3].trim() : "";
-                        const precio    = parseFloat(precioRaw.replace(/[^0-9.-]+/g, ""));
-                        if (base && sku && !isNaN(precio)) {
+const precio = (() => {
+    let v = precioRaw.trim();
+    // Formato AR: 68.684,00 → tiene punto antes que coma
+    if (v.includes('.') && v.includes(',') && v.lastIndexOf('.') < v.lastIndexOf(',')) {
+        return parseFloat(v.replace(/\./g, '').replace(',', '.'));
+    }
+    // Formato US: 68,684.00 → tiene coma antes que punto
+    if (v.includes('.') && v.includes(',') && v.lastIndexOf(',') < v.lastIndexOf('.')) {
+        return parseFloat(v.replace(/,/g, ''));
+    }
+    // Solo coma con exactamente 3 decimales → separador de miles: 68,684
+    if (v.includes(',') && !v.includes('.')) {
+        let partes = v.split(',');
+        if (partes[1] && partes[1].length === 3) return parseFloat(v.replace(',', ''));
+        return parseFloat(v.replace(',', '.'));
+    }
+    // Solo punto o número plano
+    return parseFloat(v.replace(/,/g, ''));
+})();                        if (base && sku && !isNaN(precio)) {
                             diccionarioPrecios[`${base}-${sku}`] = precio;
                         }
                     }
