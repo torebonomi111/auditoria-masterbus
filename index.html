@@ -1,4 +1,4 @@
-x<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
@@ -39,7 +39,6 @@ x<!DOCTYPE html>
         .filtro-base-banner button { background: none; border: 1px solid #555; color: #ccc; padding: 4px 12px; border-radius: 3px; cursor: pointer; font-size: 12px; }
         .filtro-base-banner button:hover { background: #333; }
         
-        .grid-dashboard { display: grid; grid-template-columns: repeat(auto-fit, minmax(450px, 1fr)); gap: 25px; margin-bottom: 25px; }
         .grid-full-width { grid-column: 1 / -1; }
         .card-chart { background: var(--panel-bg); border-radius: 4px; padding: 20px; border: 1px solid var(--border); box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
         .card-chart h2 { margin: 0 0 15px 0; font-size: 14px; text-transform: uppercase; color: var(--dark-bg); border-bottom: 1px solid var(--border); padding-bottom: 10px; display: flex; align-items: center; gap: 8px; }
@@ -89,7 +88,6 @@ x<!DOCTYPE html>
 
         <div id="dashboard-view" style="display: none;">
 
-            <!-- Banner base seleccionada -->
             <div class="filtro-base-banner" id="banner-base">
                 <div><i class="fa-solid fa-location-dot"></i> Filtrando por base: <span id="banner-base-nombre"></span></div>
                 <button onclick="limpiarFiltroBase()"><i class="fa-solid fa-xmark"></i> Ver todas las bases</button>
@@ -110,43 +108,43 @@ x<!DOCTYPE html>
                 </div>
             </div>
 
-            <div>
-            <div style="display: flex; gap: 20px; margin-bottom: 20px;">    
-                    <div class="card-chart" style="flex: 1;">
-                        <h2><i class="fa-solid fa-chart-line"></i> EVOLUCIÓN MENSUAL</h2>
-                        <div class="canvas-container" style="height: 250px;"><canvas id="chartEvolucion"></canvas></div>
-                    </div>
-                    <div class="card-chart" style="flex: 1;">
-                        <h2><i class="fa-solid fa-chart-bar"></i> EXACTITUD POR BASE <small id="label-bases-hint" style="font-size:10px; color:var(--text-muted); font-weight:400; margin-left:4px;">(click para filtrar)</small></h2>
-                        <div class="canvas-container" style="height: 250px;"><canvas id="chartBases"></canvas></div>
-                    </div>
+            <!-- Fila 1: Evolución + Exactitud -->
+            <div style="display: flex; gap: 20px; margin-bottom: 20px;">
+                <div class="card-chart" style="flex: 1;">
+                    <h2><i class="fa-solid fa-chart-line"></i> EVOLUCIÓN MENSUAL</h2>
+                    <div class="canvas-container" style="height: 250px;"><canvas id="chartEvolucion"></canvas></div>
+                </div>
+                <div class="card-chart" style="flex: 1;">
+                    <h2><i class="fa-solid fa-chart-bar"></i> EXACTITUD POR BASE <small style="font-size:10px; color:var(--text-muted); font-weight:400; margin-left:4px;">(click para filtrar)</small></h2>
+                    <div class="canvas-container" style="height: 250px;"><canvas id="chartBases"></canvas></div>
                 </div>
             </div>
 
+            <!-- Fila 2: Dona + Valorizaciones -->
             <div style="display: flex; gap: 20px; margin-bottom: 20px;">
                 <div class="card-chart" style="flex: 1;">
                     <h2><i class="fa-solid fa-chart-pie"></i> COMPOSICIÓN DE DISCREPANCIAS DETECTADAS</h2>
                     <div class="canvas-container" style="height: 250px;"><canvas id="chartDonaDiscrepancias"></canvas></div>
                 </div>
-
                 <div class="card-chart" style="flex: 1;">
                     <h2>RESUMEN DE VALORIZACIONES</h2>
                     <div style="margin-bottom: 15px;">
                         <div style="color: #666; font-size: 0.9em;">Valorización Total</div>
-                        <div id="kpi-total-val" style="font-size: 1.6em; font-weight: bold; color: #333;">$0.00</div>
+                        <div id="kpi-total-val" style="font-size: 1.6em; font-weight: bold; color: #333;">$0,00</div>
                     </div>
                     <div style="margin-bottom: 15px; border-top: 1px solid #eee; padding-top: 10px;">
                         <div style="color: #d9534f; font-size: 0.9em;">Valorizaciones Negativas</div>
-                        <div id="kpi-neg-val" style="font-size: 1.6em; font-weight: bold; color: #d9534f;">$0.00</div>
+                        <div id="kpi-neg-val" style="font-size: 1.6em; font-weight: bold; color: #d9534f;">$0,00</div>
                     </div>
                     <div style="border-top: 1px solid #eee; padding-top: 10px;">
                         <div style="color: #5cb85c; font-size: 0.9em;">Valorizaciones Positivas</div>
-                        <div id="kpi-pos-val" style="font-size: 1.6em; font-weight: bold; color: #5cb85c;">$0.00</div>
+                        <div id="kpi-pos-val" style="font-size: 1.6em; font-weight: bold; color: #5cb85c;">$0,00</div>
                     </div>
                 </div>
             </div>
             
-            <div class="card-chart grid-full-width">
+            <!-- Monitor -->
+            <div class="card-chart">
                 <h2><i class="fa-solid fa-list-check"></i> Monitor Analítico de Desvíos Detectados</h2>
 
                 <div class="filtros-bar">
@@ -206,6 +204,7 @@ x<!DOCTYPE html>
                     </table>
                 </div>
             </div>
+
         </div>
     </div>
 
@@ -215,16 +214,12 @@ x<!DOCTYPE html>
 
         let chartBasesObj, chartEvoObj, chartDonaObj;
         let diccionarioPrecios = {};
-
-        // Datos crudos completos — nunca se modifican después de cargar
-        let todasLasFilas = [];       // todas las filas (OK + DISCREPANCY)
-        let todosLosDesvios = [];     // solo DISCREPANCY
-
-        // Base actualmente seleccionada (null = todas)
+        let todasLasFilas   = [];
+        let todosLosDesvios = [];
         let baseSeleccionada = null;
 
         async function procesarDashboard() {
-            todasLasFilas = [];
+            todasLasFilas   = [];
             todosLosDesvios = [];
 
             try {
@@ -276,25 +271,23 @@ x<!DOCTYPE html>
             }
         }
 
-        // Función central: recalcula todo en función de la base (null = todas)
         function actualizarVista(base) {
             baseSeleccionada = base;
 
             const filasFiltradas   = base ? todasLasFilas.filter(f => f.base === base)   : todasLasFilas;
             const desviosFiltrados = base ? todosLosDesvios.filter(f => f.base === base) : todosLosDesvios;
 
-            // KPIs
-            let total         = filasFiltradas.length;
-            let correctas     = filasFiltradas.filter(f => f.status === "OK").length;
-            let incorrectas   = filasFiltradas.filter(f => f.status === "DISCREPANCY").length;
-            let pctCorrectas  = total > 0 ? ((correctas  / total) * 100).toFixed(1) : 0;
-            let pctIncorr     = total > 0 ? ((incorrectas / total) * 100).toFixed(1) : 0;
+            let total        = filasFiltradas.length;
+            let correctas    = filasFiltradas.filter(f => f.status === "OK").length;
+            let incorrectas  = filasFiltradas.filter(f => f.status === "DISCREPANCY").length;
+            let pctCorrectas = total > 0 ? ((correctas  / total) * 100).toFixed(1) : 0;
+            let pctIncorr    = total > 0 ? ((incorrectas / total) * 100).toFixed(1) : 0;
 
-            let totalVal  = desviosFiltrados.reduce((s, d) => s + d.valorAbsoluto, 0);
-            let negVal    = desviosFiltrados.filter(d => d.difference < 0).reduce((s, d) => s + d.valorAbsoluto, 0);
-            let posVal    = Math.max(0, totalVal - negVal);
-            let discPos   = desviosFiltrados.filter(d => d.tipoDif === "POSITIVA").length;
-            let discNeg   = desviosFiltrados.filter(d => d.tipoDif === "NEGATIVA").length;
+            let totalVal = desviosFiltrados.reduce((s, d) => s + d.valorAbsoluto, 0);
+            let negVal   = desviosFiltrados.filter(d => d.difference < 0).reduce((s, d) => s + d.valorAbsoluto, 0);
+            let posVal   = Math.max(0, totalVal - negVal);
+            let discPos  = desviosFiltrados.filter(d => d.tipoDif === "POSITIVA").length;
+            let discNeg  = desviosFiltrados.filter(d => d.tipoDif === "NEGATIVA").length;
 
             document.getElementById('kpi-total').innerText       = total;
             document.getElementById('kpi-correctas').innerText   = pctCorrectas + '%';
@@ -303,7 +296,6 @@ x<!DOCTYPE html>
             document.getElementById('kpi-neg-val').innerText     = '$' + negVal.toLocaleString('es-AR', {minimumFractionDigits: 2});
             document.getElementById('kpi-pos-val').innerText     = '$' + posVal.toLocaleString('es-AR', {minimumFractionDigits: 2});
 
-            // Banner
             const banner = document.getElementById('banner-base');
             if (base) {
                 document.getElementById('banner-base-nombre').innerText = base;
@@ -312,7 +304,6 @@ x<!DOCTYPE html>
                 banner.style.display = 'none';
             }
 
-            // Evolución mensual — solo con desviosFiltrados
             let desviosPorMes = {};
             desviosFiltrados.forEach(d => {
                 if (d.fechaRaw) {
@@ -326,7 +317,6 @@ x<!DOCTYPE html>
             let labelsMeses  = Object.keys(desviosPorMes);
             let valoresMeses = Object.values(desviosPorMes);
 
-            // Exactitud por base — siempre con TODAS las filas (para mantener referencia)
             let datosBases = {};
             todasLasFilas.forEach(f => {
                 if (!f.baseValida) return;
@@ -338,14 +328,11 @@ x<!DOCTYPE html>
             let basesExactitudPct = basesLabels.map(b =>
                 datosBases[b].totales > 0 ? ((datosBases[b].ok / datosBases[b].totales) * 100).toFixed(1) : 0
             );
-            // Resaltar barra seleccionada
             let basesColors = basesLabels.map(b =>
                 base && b === base ? '#D70000' : 'rgba(21, 21, 21, 1)'
             );
 
             generarGraficos(labelsMeses, valoresMeses, basesLabels, basesExactitudPct, basesColors, discPos, discNeg);
-
-            // Tabla: top 50 de desviosFiltrados
             renderizarTabla(desviosFiltrados, true);
         }
 
@@ -367,9 +354,9 @@ x<!DOCTYPE html>
 
             let html = '';
             datos.forEach(d => {
-                let badgeClass = d.difference < 0 ? 'bg-neg' : 'bg-pos';
-                let signo      = d.difference > 0 ? '+' : '';
-                let signoVal   = d.valorDiferencia > 0 ? '+' : '';
+                let badgeClass  = d.difference < 0 ? 'bg-neg' : 'bg-pos';
+                let signo       = d.difference > 0 ? '+' : '';
+                let signoVal    = d.valorDiferencia > 0 ? '+' : '';
                 let diffDisplay = parseFloat(d.difference.toFixed(2));
                 html += `<tr>
                     <td>${d.fechaRaw}</td>
@@ -393,7 +380,6 @@ x<!DOCTYPE html>
             const diffOp     = document.getElementById('filtro-diff-op').value;
             const diffVal    = parseFloat(document.getElementById('filtro-diff-val').value);
 
-            // Partir de desvíos ya filtrados por base si hay una seleccionada
             let fuente = baseSeleccionada ? todosLosDesvios.filter(d => d.base === baseSeleccionada) : todosLosDesvios;
 
             let resultado = fuente.filter(d => {
@@ -471,7 +457,7 @@ x<!DOCTYPE html>
                             const idx  = elements[0].index;
                             const base = chartBasesObj.data.labels[idx];
                             if (base === baseSeleccionada) {
-                                actualizarVista(null); // segundo click deselecciona
+                                actualizarVista(null);
                             } else {
                                 actualizarVista(base);
                             }
@@ -483,90 +469,88 @@ x<!DOCTYPE html>
 
             const ctxDona = document.getElementById('chartDonaDiscrepancias').getContext('2d');
             if (chartDonaObj) chartDonaObj.destroy();
-           // DESPUÉS
-const totalDona = positivas + negativas;
-chartDonaObj = new Chart(ctxDona, {
-    type: 'doughnut',
-    data: {
-        labels: ['Discrepancias Positivas', 'Discrepancias Negativas'],
-        datasets: [{
-            data: [positivas, negativas],
-            backgroundColor: ['#343a40', '#D70000'],
-            borderWidth: 3,
-            borderColor: '#ffffff'
-        }]
-    },
-    options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-            tooltip: {
-                callbacks: {
-                    label: function(context) {
-                        const pct = totalDona > 0
-                            ? ((context.parsed / totalDona) * 100).toFixed(1)
-                            : 0;
-                        return ` ${context.label}: ${pct}%`;
+            const totalDona = positivas + negativas;
+            chartDonaObj = new Chart(ctxDona, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Discrepancias Positivas', 'Discrepancias Negativas'],
+                    datasets: [{
+                        data: [positivas, negativas],
+                        backgroundColor: ['#343a40', '#D70000'],
+                        borderWidth: 3,
+                        borderColor: '#ffffff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const pct = totalDona > 0
+                                        ? ((context.parsed / totalDona) * 100).toFixed(1)
+                                        : 0;
+                                    return ` ${context.label}: ${pct}%`;
+                                }
+                            }
+                        }
                     }
                 }
-            }
-        }
-    }
-});
-async function cargarPrecios() {
-    const url = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTmsaR3HAfCf965pC3rUVkkHNByDnougE2SY5r5_j8I9dTyxRFgyfclWr7yH2-caw/pub?gid=1808497775&single=true&output=csv";
-    try {
-        const response = await fetch(url);
-        const data = await response.text();
-        const filas = data.split('\n');
+            });
+        }  // ← cierre de generarGraficos
 
-        for (let i = 2; i < filas.length; i++) {
-            // Parsear CSV respetando campos entre comillas
-            const fila = filas[i];
-            if (!fila.trim()) continue;
+        async function cargarPrecios() {
+            const url = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTmsaR3HAfCf965pC3rUVkkHNByDnougE2SY5r5_j8I9dTyxRFgyfclWr7yH2-caw/pub?gid=1808497775&single=true&output=csv";
+            try {
+                const response = await fetch(url);
+                const data = await response.text();
+                const filas = data.split('\n');
 
-            const columnas = [];
-            let actual = '';
-            let dentroComillas = false;
-            for (let ch of fila) {
-                if (ch === '"') {
-                    dentroComillas = !dentroComillas;
-                } else if (ch === ',' && !dentroComillas) {
+                for (let i = 2; i < filas.length; i++) {
+                    const fila = filas[i];
+                    if (!fila.trim()) continue;
+
+                    const columnas = [];
+                    let actual = '';
+                    let dentroComillas = false;
+                    for (let ch of fila) {
+                        if (ch === '"') {
+                            dentroComillas = !dentroComillas;
+                        } else if (ch === ',' && !dentroComillas) {
+                            columnas.push(actual.trim());
+                            actual = '';
+                        } else {
+                            actual += ch;
+                        }
+                    }
                     columnas.push(actual.trim());
-                    actual = '';
-                } else {
-                    actual += ch;
-                }
-            }
-            columnas.push(actual.trim());
 
-            if (columnas.length >= 4) {
-                const base      = columnas[1] ? columnas[1].trim() : "";
-                const sku       = columnas[2] ? columnas[2].trim() : "";
-                const precioRaw = columnas[3] ? columnas[3].trim() : "";
+                    if (columnas.length >= 4) {
+                        const base      = columnas[1] ? columnas[1].trim() : "";
+                        const sku       = columnas[2] ? columnas[2].trim() : "";
+                        const precioRaw = columnas[3] ? columnas[3].trim() : "";
 
-                // Formato AR: 68.684,00
-                let v = precioRaw.replace(/"/g, '').trim();
-                let precio;
-                if (v.includes('.') && v.includes(',')) {
-                    precio = parseFloat(v.replace(/\./g, '').replace(',', '.'));
-                } else if (v.includes(',')) {
-                    precio = parseFloat(v.replace(',', '.'));
-                } else {
-                    precio = parseFloat(v);
-                }
+                        let v = precioRaw.replace(/"/g, '').trim();
+                        let precio;
+                        if (v.includes('.') && v.includes(',')) {
+                            precio = parseFloat(v.replace(/\./g, '').replace(',', '.'));
+                        } else if (v.includes(',')) {
+                            precio = parseFloat(v.replace(',', '.'));
+                        } else {
+                            precio = parseFloat(v);
+                        }
 
-                if (base && sku && !isNaN(precio)) {
-                    diccionarioPrecios[`${base}-${sku}`] = precio;
+                        if (base && sku && !isNaN(precio)) {
+                            diccionarioPrecios[`${base}-${sku}`] = precio;
+                        }
+                    }
                 }
+                console.log("¡Precios cargados! Cantidad de productos:", Object.keys(diccionarioPrecios).length);
+            } catch (err) {
+                console.error("Error al cargar precios:", err);
             }
         }
-        console.log("¡Precios cargados! Cantidad de productos:", Object.keys(diccionarioPrecios).length);
-        console.log("Muestra:", Object.entries(diccionarioPrecios).slice(0, 3));
-    } catch (err) {
-        console.error("Error al cargar precios:", err);
-    }
-}
 
         window.onload = async () => {
             await cargarPrecios();
