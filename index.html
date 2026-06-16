@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+x<!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
@@ -110,8 +110,8 @@
                 </div>
             </div>
 
-            <div class="grid-dashboard">
-                <div style="display: flex; gap: 20px; grid-column: 1 / -1; margin-bottom: 20px;">
+            <div>
+            <div style="display: flex; gap: 20px; margin-bottom: 20px;">    
                     <div class="card-chart" style="flex: 1;">
                         <h2><i class="fa-solid fa-chart-line"></i> EVOLUCIÓN MENSUAL</h2>
                         <div class="canvas-container" style="height: 250px;"><canvas id="chartEvolucion"></canvas></div>
@@ -483,21 +483,36 @@
 
             const ctxDona = document.getElementById('chartDonaDiscrepancias').getContext('2d');
             if (chartDonaObj) chartDonaObj.destroy();
-            chartDonaObj = new Chart(ctxDona, {
-                type: 'doughnut',
-                data: {
-                    labels: ['Discrepancias Positivas', 'Discrepancias Negativas'],
-                    datasets: [{
-                        data: [positivas, negativas],
-                        backgroundColor: ['#343a40', '#D70000'],
-                        borderWidth: 3,
-                        borderColor: '#ffffff'
-                    }]
-                },
-                options: { responsive: true, maintainAspectRatio: false }
-            });
+           // DESPUÉS
+const totalDona = positivas + negativas;
+chartDonaObj = new Chart(ctxDona, {
+    type: 'doughnut',
+    data: {
+        labels: ['Discrepancias Positivas', 'Discrepancias Negativas'],
+        datasets: [{
+            data: [positivas, negativas],
+            backgroundColor: ['#343a40', '#D70000'],
+            borderWidth: 3,
+            borderColor: '#ffffff'
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            tooltip: {
+                callbacks: {
+                    label: function(context) {
+                        const pct = totalDona > 0
+                            ? ((context.parsed / totalDona) * 100).toFixed(1)
+                            : 0;
+                        return ` ${context.label}: ${pct}%`;
+                    }
+                }
+            }
         }
-
+    }
+});
 async function cargarPrecios() {
     const url = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTmsaR3HAfCf965pC3rUVkkHNByDnougE2SY5r5_j8I9dTyxRFgyfclWr7yH2-caw/pub?gid=1808497775&single=true&output=csv";
     try {
