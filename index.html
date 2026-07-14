@@ -212,52 +212,87 @@
     </div>
 
     <script>
-        // ======= CONFIGURACIÓN DE IDs DE GOOGLE SHEETS =======
-        const SHEET_AUDITORIAS_ID = '1HUsHv7RoLQ2vT3m4MJDwU0ZsT6lQiCyI-0ITgbOM9xs';
-        const URL_AUDITORIAS = `https://docs.google.com/spreadsheets/d/${SHEET_AUDITORIAS_ID}/gviz/tq?tqx=out:json&gid=0`;
-
-        // ⚠️ INGRESA ACÁ EL ID DEL EXCEL DE INVENTARIO:
-        const SHEET_INVENTARIO_ID = '18qiDEw9VF6cSfJvIc5MdujQf6GCpep0HoaZZaf-Ddrk'; 
-        const URL_INVENTARIO = `https://docs.google.com/spreadsheets/d/${SHEET_INVENTARIO_ID}/gviz/tq?tqx=out:json&gid=0`;
-        // =====================================================
+        // ======= LOS NUEVOS LINKS DIRECTOS DE DESCARGA (SIN API GVIZ, CERO CORS) =======
+        const URL_AUDITORIAS_CSV = 'https://docs.google.com/spreadsheets/d/1HUsHv7RoLQ2vT3m4MJDwU0ZsT6lQiCyI-0ITgbOM9xs/pub?output=csv';
+        const URL_INVENTARIO_CSV = 'https://docs.google.com/spreadsheets/d/18qiDEw9VF6cSfJvIc5MdujQf6GCpep0HoaZZaf-Ddrk/pub?output=csv';
+        const URL_PRECIOS_CSV    = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTmsaR3HAfCf965pC3rUVkkHNByDnougE2SY5r5_j8I9dTyxRFgyfclWr7yH2-caw/pub?gid=1808497775&single=true&output=csv';
+        // ===============================================================================
 
         let chartBasesObj, chartEvoObj, chartDonaObj, chartAvanceObj;
         let diccionarioPrecios = {};
-        let inventarioPorBase = {}; // Guardará todos los SKUs existentes por Base
+        let inventarioPorBase = {}; 
         let todasLasFilas   = [];
         let todosLosDesvios = [];
         let baseSeleccionada = null;
 
-        async function cargarInventario() {
-            if (SHEET_INVENTARIO_ID === 'AQUI_PONE_EL_ID_DEL_EXCEL_DE_INVENTARIO') {
-                console.warn("Falta configurar el ID del Excel de inventario. El gráfico de Avance mostrará 0%.");
-                return;
+        // Función blindada para leer las comas en los archivos CSV
+        function parseCSVRow(str) {
+            let regex = /("([^"]|"")*"|[^,]*)(?=,|$)/g;
+            let matches = str.match(regex);
+            return matches ? matches.map(m => m.replace(/^"|"$/g, '').replace(/""/g, '"').trim()) : [];
+        }
+
+        // Descargador inteligente
+        async function fetchCSV(url) {
+            const response = await fetch(url);
+            if (!response.ok) throw new Error("No se pudo conectar a Google Sheets");
+            const text = await response.text();
+            return text.split('\n').map(line => parseCSVRow(line)).filter(row => row.length > 0 && row[0] !== undefined);
+        }
+
+        async function cargarPrecios() {
+            try {
+                document.getElementById('loading-text').innerText = "Cargando Lista de Precios...";
+                const filas = await fetchCSV(URL_PRECIOS_CSV);
+
+                for (let i = 2; i < filas.length; i++) { 
+                    const c = filas[i];
+                    if (c.length >= 4) {
+                        const base      = c[1] ? c[1] : "";
+                        const sku       = c[2] ? c[2] : "";
+                        const precioRaw = c[3] ? c[3] : "";
+
+                        let v = precioRaw;
+                        let precio;
+                        if (v.includes('.') && v.includes(',')) {
+                            precio = parseFloat(v.replace(/\./g, '').replace(',', '.'));
+                        } else if (v.includes(',')) {
+                            precio = parseFloat(v.replace(',', '.'));
+                        } else {
+                            precio = parseFloat(v);
+                        }
+
+                        if (base && sku && !isNaN(precio)) {
+                            diccionarioPrecios[`${base}-${sku}`] = precio;
+                        }
+                    }
+                }
+            } catch (err) {
+                console.error("Error al cargar precios:", err);
             }
+        }
+
+        async function cargarInventario() {
             try {
                 document.getElementById('loading-text').innerText = "Cargando Maestro de Inventarios...";
-                const response = await fetch(URL_INVENTARIO);
-                const text = await response.text();
-                const jsonString = text.substring(text.indexOf('(') + 1, text.lastIndexOf(')'));
-                const data = JSON.parse(jsonString);
-                const filas = data.table.rows;
-
+                const filas = await fetchCSV(URL_INVENTARIO_CSV);
                 inventarioPorBase = {}; 
 
-                filas.forEach(f => {
-                    const c = f.c;
-                    if (!c) return;
-                    // Según lo solicitado: SKU está en C (índice 2) y Base en D (índice 3)
-                    let sku = c[2] ? c[2].v : null; 
-                    let base = c[3] ? c[3].v : null; 
+                filas.forEach((c, index) => {
+                    if(index === 0) return; // Saltar encabezados
+                    if (c.length < 4) return;
+                    
+                    let sku = c[2]; 
+                    let base = c[3]; 
 
                     if (sku && base) {
-                        let baseStr = String(base).trim();
+                        let baseStr = String(base).trim().toUpperCase();
                         let skuStr = String(sku).trim();
                         if (baseStr !== "" && skuStr !== "") {
                             if (!inventarioPorBase[baseStr]) {
                                 inventarioPorBase[baseStr] = new Set();
                             }
-                            inventarioPorBase[baseStr].add(skuStr); // Usamos Set para evitar contar SKUs duplicados
+                            inventarioPorBase[baseStr].add(skuStr);
                         }
                     }
                 });
@@ -272,25 +307,21 @@
 
             try {
                 document.getElementById('loading-text').innerText = "Procesando Auditorías y Desvíos...";
-                const response = await fetch(URL_AUDITORIAS);
-                const text = await response.text();
-                const jsonString = text.substring(text.indexOf('(') + 1, text.lastIndexOf(')'));
-                const data = JSON.parse(jsonString);
-                const filas = data.table.rows;
+                const filas = await fetchCSV(URL_AUDITORIAS_CSV);
 
-                filas.forEach(f => {
-                    const c = f.c;
-                    if (!c || !c[6]) return;
+                filas.forEach((c, index) => {
+                    if (index === 0) return; // Saltar encabezados
+                    if (c.length < 11 || !c[6]) return; // Saltar vacías
 
-                    let sku         = c[1]  ? c[1].v  : '-';
-                    let location    = c[3]  ? c[3].v  : 'No Asignada';
-                    let theoretical = c[4]  ? Number(c[4].v  || 0) : 0;
-                    let physical    = c[5]  ? Number(c[5].v  || 0) : 0;
-                    let status      = c[6]  ? c[6].v  : '';
-                    let base        = c[9]  ? c[9].v  : '';
-                    let difference  = c[10] ? Number(c[10].v) : 0;
-                    let fechaRaw    = c[11] ? String(c[11].v || c[11].f || '') : '';
-                    let tipoDif     = c[12] ? c[12].v  : '';
+                    let sku         = c[1]  || '-';
+                    let location    = c[3]  || 'No Asignada';
+                    let theoretical = Number(c[4]  || 0);
+                    let physical    = Number(c[5]  || 0);
+                    let status      = c[6]  || '';
+                    let base        = c[9]  || '';
+                    let difference  = Number(c[10] || 0);
+                    let fechaRaw    = c[11] || '';
+                    let tipoDif     = c[12] || '';
 
                     let costoUnitario   = diccionarioPrecios[`${base}-${sku}`] || 0;
                     let valorDiferencia = difference * costoUnitario;
@@ -302,11 +333,11 @@
                         if (p.length === 3) fechaObj = new Date(`${p[2]}-${p[1].padStart(2,'0')}-${p[0].padStart(2,'0')}T00:00:00`);
                     }
 
-                    let baseValida = base && base.toString().trim() !== "" && base.toString().toLowerCase() !== "sin base";
+                    let baseValida = base && base.trim() !== "" && base.toLowerCase() !== "sin base";
 
                     const fila = { sku, location, theoretical, physical, status, base, baseValida, difference, fechaRaw, fechaObj, tipoDif, costoUnitario, valorDiferencia, valorAbsoluto };
                     todasLasFilas.push(fila);
-                    if (status === "DISCREPANCY") todosLosDesvios.push(fila);
+                    if (status.toUpperCase() === "DISCREPANCY") todosLosDesvios.push(fila);
                 });
 
                 actualizarVista(null);
@@ -327,16 +358,16 @@
             const desviosFiltrados = base ? todosLosDesvios.filter(f => f.base === base) : todosLosDesvios;
 
             let total        = filasFiltradas.length;
-            let correctas    = filasFiltradas.filter(f => f.status === "OK").length;
-            let incorrectas  = filasFiltradas.filter(f => f.status === "DISCREPANCY").length;
+            let correctas    = filasFiltradas.filter(f => f.status.toUpperCase() === "OK").length;
+            let incorrectas  = filasFiltradas.filter(f => f.status.toUpperCase() === "DISCREPANCY").length;
             let pctCorrectas = total > 0 ? ((correctas  / total) * 100).toFixed(1) : 0;
             let pctIncorr    = total > 0 ? ((incorrectas / total) * 100).toFixed(1) : 0;
 
             let totalVal = desviosFiltrados.reduce((s, d) => s + d.valorAbsoluto, 0);
             let negVal   = desviosFiltrados.filter(d => d.difference < 0).reduce((s, d) => s + d.valorAbsoluto, 0);
             let posVal   = Math.max(0, totalVal - negVal);
-            let discPos  = desviosFiltrados.filter(d => d.tipoDif === "POSITIVA").length;
-            let discNeg  = desviosFiltrados.filter(d => d.tipoDif === "NEGATIVA").length;
+            let discPos  = desviosFiltrados.filter(d => d.tipoDif.toUpperCase() === "POSITIVA").length;
+            let discNeg  = desviosFiltrados.filter(d => d.tipoDif.toUpperCase() === "NEGATIVA").length;
 
             document.getElementById('kpi-total').innerText       = total;
             document.getElementById('kpi-correctas').innerText   = pctCorrectas + '%';
@@ -368,7 +399,7 @@
 
             // Cálculos para gráficos de Base
             let datosBases = {};
-            let skusAuditadosPorBase = {}; // Para el gráfico de Avance
+            let skusAuditadosPorBase = {}; 
 
             todasLasFilas.forEach(f => {
                 if (!f.baseValida) return;
@@ -376,9 +407,9 @@
                 // Conteo para Exactitud
                 if (!datosBases[f.base]) datosBases[f.base] = { totales: 0, ok: 0 };
                 datosBases[f.base].totales++;
-                if (f.status === "OK") datosBases[f.base].ok++;
+                if (f.status.toUpperCase() === "OK") datosBases[f.base].ok++;
 
-                // Conteo para Avance (Guardamos SKUs únicos auditados)
+                // Conteo para Avance (SKUs únicos)
                 if (!skusAuditadosPorBase[f.base]) skusAuditadosPorBase[f.base] = new Set();
                 skusAuditadosPorBase[f.base].add(f.sku);
             });
@@ -392,12 +423,13 @@
 
             // % Avance
             let basesAvancePct = basesLabels.map(b => {
-                let totalInventario = inventarioPorBase[b] ? inventarioPorBase[b].size : 0;
+                let baseNormalizada = String(b).trim().toUpperCase();
+                let totalInventario = inventarioPorBase[baseNormalizada] ? inventarioPorBase[baseNormalizada].size : 0;
                 let totalAuditado = skusAuditadosPorBase[b] ? skusAuditadosPorBase[b].size : 0;
                 
-                if (totalInventario === 0) return 0; // Si no encontró esa base en el excel de inventario
+                if (totalInventario === 0) return 0; 
                 let pct = (totalAuditado / totalInventario) * 100;
-                return Math.min(pct, 100).toFixed(1); // Topamos a 100% por seguridad
+                return Math.min(pct, 100).toFixed(1); 
             });
 
             let basesColors = basesLabels.map(b =>
@@ -541,7 +573,7 @@
                 }
             });
 
-            // NUEVO Gráfico 3: Avance por Base
+            // Gráfico 3: Avance por Base
             const ctxAvance = document.getElementById('chartAvanceBases').getContext('2d');
             if (chartAvanceObj) chartAvanceObj.destroy();
             chartAvanceObj = new Chart(ctxAvance, {
@@ -551,7 +583,7 @@
                     datasets: [{
                         label: '% Avance',
                         data: avanceY,
-                        backgroundColor: '#0d6efd', // Color azul para diferenciar
+                        backgroundColor: '#0d6efd',
                         borderWidth: 1,
                         borderRadius: 3
                     }]
@@ -597,61 +629,10 @@
             });
         } 
 
-        async function cargarPrecios() {
-            const url = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTmsaR3HAfCf965pC3rUVkkHNByDnougE2SY5r5_j8I9dTyxRFgyfclWr7yH2-caw/pub?gid=1808497775&single=true&output=csv";
-            try {
-                document.getElementById('loading-text').innerText = "Cargando Lista de Precios...";
-                const response = await fetch(url);
-                const data = await response.text();
-                const filas = data.split('\n');
-
-                for (let i = 2; i < filas.length; i++) {
-                    const fila = filas[i];
-                    if (!fila.trim()) continue;
-
-                    const columnas = [];
-                    let actual = '';
-                    let dentroComillas = false;
-                    for (let ch of fila) {
-                        if (ch === '"') {
-                            dentroComillas = !dentroComillas;
-                        } else if (ch === ',' && !dentroComillas) {
-                            columnas.push(actual.trim());
-                            actual = '';
-                        } else {
-                            actual += ch;
-                        }
-                    }
-                    columnas.push(actual.trim());
-
-                    if (columnas.length >= 4) {
-                        const base      = columnas[1] ? columnas[1].trim() : "";
-                        const sku       = columnas[2] ? columnas[2].trim() : "";
-                        const precioRaw = columnas[3] ? columnas[3].trim() : "";
-
-                        let v = precioRaw.replace(/"/g, '').trim();
-                        let precio;
-                        if (v.includes('.') && v.includes(',')) {
-                            precio = parseFloat(v.replace(/\./g, '').replace(',', '.'));
-                        } else if (v.includes(',')) {
-                            precio = parseFloat(v.replace(',', '.'));
-                        } else {
-                            precio = parseFloat(v);
-                        }
-
-                        if (base && sku && !isNaN(precio)) {
-                            diccionarioPrecios[`${base}-${sku}`] = precio;
-                        }
-                    }
-                }
-            } catch (err) {
-                console.error("Error al cargar precios:", err);
-            }
-        }
-
+        // Orquestador Principal
         window.onload = async () => {
             await cargarPrecios();
-            await cargarInventario(); // <--- Llama a leer el inventario nuevo
+            await cargarInventario(); 
             await procesarDashboard();
             setInterval(async () => {
                 await cargarPrecios();
