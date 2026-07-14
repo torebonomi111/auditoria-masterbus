@@ -423,7 +423,7 @@
             let coberturasColors = [];
 
             Object.keys(inventarioPorBase)
-                .filter(b => BASES_COBERTURA.some(bc => b.toUpperCase().includes(bc)))
+                .filter(b => BASES_COBERTURA.includes(b.toUpperCase().trim()))               
                 .sort()
                 .forEach(b => {
                     const totalInv  = inventarioPorBase[b].size;
