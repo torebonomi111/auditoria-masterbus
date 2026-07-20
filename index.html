@@ -513,4 +513,198 @@
             document.getElementById('contador-tabla').innerHTML = modoTexto;
 
             if (datos.length === 0) {
-                document.getElementById('tabla-desvios').innerHTML = '<tr><td colspan="9" style="text-align:center;">
+                document.getElementById('tabla-desvios').innerHTML = '<tr><td colspan="9" style="text-align:center;">No hay datos para los filtros seleccionados.</td></tr>';
+                return;
+            }
+
+            let html = '';
+            datos.forEach(d => {
+                let badgeClass  = d.difference < 0 ? 'bg-neg' : 'bg-pos';
+                let signo       = d.difference > 0 ? '+' : '';
+                let signoVal    = d.valorDiferencia > 0 ? '+' : '';
+                let diffDisplay = parseFloat(d.difference.toFixed(2));
+                html += `<tr>
+                    <td>${d.fechaRaw}</td>
+                    <td><strong>${d.base || '-'}</strong></td>
+                    <td>${d.sku}</td>
+                    <td>${d.location}</td>
+                    <td>${d.theoretical}</td>
+                    <td>${d.physical}</td>
+                    <td><span class="badge-table ${badgeClass}">${signo}${diffDisplay}</span></td>
+                    <td>$${d.costoUnitario.toLocaleString('es-AR', {minimumFractionDigits: 2})}</td>
+                    <td><span class="badge-table ${badgeClass}">${signoVal}$${Math.abs(d.valorDiferencia).toLocaleString('es-AR', {minimumFractionDigits: 2})}</span></td>
+                </tr>`;
+            });
+            document.getElementById('tabla-desvios').innerHTML = html;
+        }
+
+        // ── Filtros ───────────────────────────────────────────────────────────
+        function aplicarFiltros() {
+            const fechaDesde = document.getElementById('filtro-fecha-desde').value;
+            const fechaHasta = document.getElementById('filtro-fecha-hasta').value;
+            const skuFiltro  = document.getElementById('filtro-sku').value.trim().toLowerCase();
+            const diffOp     = document.getElementById('filtro-diff-op').value;
+            const diffVal    = parseFloat(document.getElementById('filtro-diff-val').value);
+
+            let fuente = baseSeleccionada ? todosLosDesvios.filter(d => d.base === baseSeleccionada) : todosLosDesvios;
+
+            let resultado = fuente.filter(d => {
+                if (fechaDesde && d.fechaObj && d.fechaObj < new Date(fechaDesde)) return false;
+                if (fechaHasta && d.fechaObj && d.fechaObj > new Date(fechaHasta + 'T23:59:59')) return false;
+                if (skuFiltro && !d.sku.toString().toLowerCase().includes(skuFiltro)) return false;
+                if (diffOp !== 'ninguno' && !isNaN(diffVal)) {
+                    if (diffOp === 'exacto'    && d.difference !== diffVal)                return false;
+                    if (diffOp === 'mayor'     && d.difference <= diffVal)                 return false;
+                    if (diffOp === 'menor'     && d.difference >= diffVal)                 return false;
+                    if (diffOp === 'mayor_abs' && Math.abs(d.difference) <= diffVal)       return false;
+                    if (diffOp === 'menor_abs' && Math.abs(d.difference) >= diffVal)       return false;
+                }
+                return true;
+            });
+
+            renderizarTabla(resultado, false);
+        }
+
+        function limpiarFiltros() {
+            document.getElementById('filtro-fecha-desde').value = '';
+            document.getElementById('filtro-fecha-hasta').value = '';
+            document.getElementById('filtro-sku').value = '';
+            document.getElementById('filtro-diff-op').value = 'ninguno';
+            document.getElementById('filtro-diff-val').value = '';
+            const fuente = baseSeleccionada ? todosLosDesvios.filter(d => d.base === baseSeleccionada) : todosLosDesvios;
+            renderizarTabla(fuente, true);
+        }
+
+        function limpiarFiltroBase() {
+            actualizarVista(null);
+            limpiarFiltros();
+        }
+
+        // ── Gráficos ──────────────────────────────────────────────────────────
+        function generarGraficos(meses, valoresMeses, basesX, exactitudY, basesColors, positivas, negativas, cobLabels, cobPct, cobColors) {
+
+            const ctxEvo = document.getElementById('chartEvolucion').getContext('2d');
+            if (chartEvoObj) chartEvoObj.destroy();
+            chartEvoObj = new Chart(ctxEvo, {
+                type: 'line',
+                data: {
+                    labels: meses,
+                    datasets: [{
+                        label: 'Total Desvíos',
+                        data: valoresMeses,
+                        borderColor: '#D70000',
+                        backgroundColor: 'rgba(215, 0, 0, 0.1)',
+                        tension: 0.3,
+                        fill: true,
+                        borderWidth: 3
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { datalabels: { display: false } } }
+            });
+
+            const ctxBases = document.getElementById('chartBases').getContext('2d');
+            if (chartBasesObj) chartBasesObj.destroy();
+            chartBasesObj = new Chart(ctxBases, {
+                type: 'bar',
+                data: {
+                    labels: basesX,
+                    datasets: [{
+                        label: '% Exactitud de Stock',
+                        data: exactitudY,
+                        backgroundColor: basesColors,
+                        borderWidth: 1,
+                        borderRadius: 3
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    onClick: (evt, elements) => {
+                        if (elements.length > 0) {
+                            const idx  = elements[0].index;
+                            const base = chartBasesObj.data.labels[idx];
+                            if (base === baseSeleccionada) {
+                                actualizarVista(null);
+                            } else {
+                                actualizarVista(base);
+                            }
+                        }
+                    },
+                    plugins: { datalabels: { display: false } },
+                    scales: { y: { beginAtZero: true, max: 100, ticks: { callback: value => value + '%' } } }
+                }
+            });
+
+            const ctxDona = document.getElementById('chartDonaDiscrepancias').getContext('2d');
+            if (chartDonaObj) chartDonaObj.destroy();
+            chartDonaObj = new Chart(ctxDona, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Sobrantes (Positivas)', 'Faltantes (Negativas)'],
+                    datasets: [{
+                        data: [positivas, negativas],
+                        backgroundColor: ['#198754', '#D70000'],
+                        borderWidth: 3,
+                        borderColor: '#ffffff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        datalabels: {
+                            color: '#ffffff',
+                            font: { weight: 'bold', size: 14 },
+                            formatter: (value, context) => {
+                                const total = context.chart.data.datasets[0].data.reduce((a, b) => a + b, 0);
+                                if(total === 0) return '0%';
+                                return ((value / total) * 100).toFixed(1) + '%';
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return ` ${context.label}: ${context.raw}`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            const ctxCobertura = document.getElementById('chartCobertura').getContext('2d');
+            if (chartCoberturaObj) chartCoberturaObj.destroy();
+            chartCoberturaObj = new Chart(ctxCobertura, {
+                type: 'bar',
+                data: {
+                    labels: cobLabels,
+                    datasets: [{
+                        label: '% Cobertura',
+                        data: cobPct,
+                        backgroundColor: '#0d6efd',
+                        borderWidth: 1,
+                        borderRadius: 3
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { datalabels: { display: false } },
+                    scales: { y: { beginAtZero: true, max: 100, ticks: { callback: value => value + '%' } } }
+                }
+            });
+        }
+
+        window.onload = async () => {
+            await cargarPrecios();
+            await cargarInventario();
+            await procesarDashboard();
+            setInterval(async () => {
+                await cargarPrecios();
+                await cargarInventario();
+                await procesarDashboard();
+            }, 300000);
+        };
+    </script>
+</body>
+</html>
